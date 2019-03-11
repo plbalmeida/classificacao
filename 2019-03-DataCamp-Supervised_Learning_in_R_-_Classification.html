@@ -249,8 +249,26 @@ mean(signs_actual == k_7)</code></pre>
 <pre class="r"><code># k = 15
 k_15 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 15)
 mean(signs_actual == k_15)</code></pre>
-<pre><code>## [1] 0.8983051</code></pre>
+<pre><code>## [1] 0.8644068</code></pre>
 <p>O modelo configurado com o k igual a 7 possui a melhor acurácia!</p>
+</div>
+<div id="verificando-como-os-vizinhos-votam" class="section level3">
+<h3>1.3) Verificando como os vizinhos votam</h3>
+<p>Quando vários vizinhos mais próximos realizam um voto, às vezes pode ser útil examinar se os votantes foram unânimes ou amplamente separados.</p>
+<p>Por exemplo, saber mais sobre os votantes na classificação pode permitir que um veículo autônomo use cautela quando haver alguma chance de um sinal de parada estar próximo.</p>
+<pre class="r"><code># usando o argumento prob para obter a proporção de votoss da classe vencedora
+sign_pred &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 7, prob = TRUE)
+
+# obtendo o atributo &quot;prob&quot; das classes preditas
+sign_prob &lt;- attr(sign_pred, &quot;prob&quot;)
+
+# verificando as cinco primeiras predições
+head(sign_pred)</code></pre>
+<pre><code>## [1] pedestrian pedestrian pedestrian stop       pedestrian pedestrian
+## Levels: pedestrian speed stop</code></pre>
+<pre class="r"><code># verificando as proporções de votos da classe vencedora
+head(sign_prob)</code></pre>
+<pre><code>## [1] 0.5714286 0.5714286 0.8571429 0.5714286 0.8571429 0.5714286</code></pre>
 </div>
 </div>
 
