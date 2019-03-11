@@ -33,3 +33,39 @@ sign_types <- signs$sign_type
 knn(train = signs[-1], test = next_sign, cl = sign_types)
 
 ```
+
+Explorando o dataset signs
+
+```{r, message=FALSE, warning=FALSE}
+
+# estrutura do signs
+str(signs)
+
+# contanto o número de sinais de cada tipo
+table(signs$sign_type)
+
+# checando a média da feature r10 (vermelho) por tipo de sinal
+aggregate(r10 ~ sign_type, data = signs, mean)
+
+```
+
+Era esperado que os sinais de parada tendem a ter um valor médio de vermelho mais alto. É assim que o kNN identifica sinais semelhantes.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset de teste
+signs_test <- read.csv(file = "signs_test.csv", sep = ";")
+
+# usando o kNN para identificar os sinais no dataset de teste
+signs_pred <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types)
+
+# matriz de confusão das previsões X os valores atuais
+signs_actual <- signs_test$sign_type
+table(signs_pred, signs_actual)
+
+# Compute the accuracy
+mean(signs_pred == signs_actual)
+
+```
+
+A matriz de confusão permite verificar os erros do modelo classificador.
