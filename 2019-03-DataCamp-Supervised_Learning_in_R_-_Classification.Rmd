@@ -22,6 +22,10 @@ Usarei o dataset signs e o next_sign que possui as observaçoes que irei classif
 # carregando o pacote class
 library(class)
 
+# carregando os datasets
+signs <- read.csv(file = "signs.csv", sep = ";")
+next_sign <- read.csv(file = "next_sign.csv", sep = ";")
+
 # criando o vetor dos rótulos
 sign_types <- signs$sign_type
 
