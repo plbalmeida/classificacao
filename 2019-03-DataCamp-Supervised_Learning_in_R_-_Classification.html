@@ -213,6 +213,7 @@ aggregate(r10 ~ sign_type, data = signs, mean)</code></pre>
 ## 2      speed  80.63265
 ## 3       stop 132.39216</code></pre>
 <p>Era esperado que os sinais de parada tendem a ter um valor médio de vermelho mais alto. É assim que o kNN identifica sinais semelhantes.</p>
+<p>Agora vou fazer previsões com dados não vistos e avaliar a performance do kNN.</p>
 <pre class="r"><code># carregando o dataset de teste
 signs_test &lt;- read.csv(file = &quot;signs_test.csv&quot;, sep = &quot;;&quot;)
 
@@ -231,6 +232,25 @@ table(signs_pred, signs_actual)</code></pre>
 mean(signs_pred == signs_actual)</code></pre>
 <pre><code>## [1] 0.9322034</code></pre>
 <p>A matriz de confusão permite verificar os erros do modelo classificador.</p>
+</div>
+<div id="testando-outros-valores-de-k" class="section level3">
+<h3>1.2) Testando outros valores de k</h3>
+<p>A função knn() do pacote class usa apenas o vizinho mais próximo.</p>
+<p>Definir o parâmetro k permite que o algoritmo considere vizinhos mais próximos adicionais. Isso amplia a coleção de vizinhos que votarão na classe prevista.</p>
+<p>Vou comparar os valores k de 1, 7 e 15 para examinar o impacto na precisão da classificação do sinal de trânsito.</p>
+<pre class="r"><code># default, k = 1
+k_1 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types)
+mean(signs_actual == k_1)</code></pre>
+<pre><code>## [1] 0.9322034</code></pre>
+<pre class="r"><code># k = 7
+k_7 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 7)
+mean(signs_actual == k_7)</code></pre>
+<pre><code>## [1] 0.9491525</code></pre>
+<pre class="r"><code># k = 15
+k_15 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 15)
+mean(signs_actual == k_15)</code></pre>
+<pre><code>## [1] 0.8983051</code></pre>
+<p>O modelo configurado com o k igual a 7 possui a melhor acurácia!</p>
 </div>
 </div>
 

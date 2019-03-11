@@ -51,6 +51,8 @@ aggregate(r10 ~ sign_type, data = signs, mean)
 
 Era esperado que os sinais de parada tendem a ter um valor médio de vermelho mais alto. É assim que o kNN identifica sinais semelhantes.
 
+Agora vou fazer previsões com dados não vistos e avaliar a performance do kNN. 
+
 ```{r, message=FALSE, warning=FALSE}
 
 # carregando o dataset de teste
@@ -69,3 +71,29 @@ mean(signs_pred == signs_actual)
 ```
 
 A matriz de confusão permite verificar os erros do modelo classificador.
+
+### 1.2) Testando outros valores de k
+
+A função knn() do pacote class usa apenas o vizinho mais próximo.
+
+Definir o parâmetro k permite que o algoritmo considere vizinhos mais próximos adicionais. Isso amplia a coleção de vizinhos que votarão na classe prevista.
+
+Vou comparar os valores k de 1, 7 e 15 para examinar o impacto na precisão da classificação do sinal de trânsito.
+
+```{r, message=FALSE, warning=FALSE}
+
+# default, k = 1
+k_1 <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types)
+mean(signs_actual == k_1)
+
+# k = 7
+k_7 <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 7)
+mean(signs_actual == k_7)
+
+# k = 15
+k_15 <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 15)
+mean(signs_actual == k_15)
+
+```
+
+O modelo configurado com o k igual a 7 possui a melhor acurácia!
