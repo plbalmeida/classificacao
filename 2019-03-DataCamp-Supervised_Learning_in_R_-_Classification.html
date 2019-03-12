@@ -130,10 +130,12 @@ $(document).ready(function () {
 
 <div id="k-nearest-neighbors-knn" class="section level2">
 <h2>1) k-Nearest Neighbors (kNN)</h2>
-<p>O kNN literalmente aprende pelo exemplo, e é um bom exemplo para começar a entender o aprendizado de máquina supervisionado de classificação. Nessa primeira parte do código apresentarei a aplicação do kNN no reconhecimento de sinais de trânsito de veículos autônomos.</p>
+<p>O kNN mede a similaridade pela distância Euclidiana, que é dada pela seguinte fórmula:</p>
+<p><span class="math display">\[ dist(p,q) = \sqrt{(p_1 - q_1)^2 + (p_2 - q_2)^2 +...+(p_n - q_n)^2} \]</span></p>
+<p>O kNN literalmente aprende pelo exemplo, e é um bom método para começar a entender o aprendizado de máquina supervisionado de classificação. Nessa primeira parte do código apresentarei a aplicação do kNN no reconhecimento de sinais de trânsito de veículos autônomos.</p>
 <div id="reconhecimento-de-sinais-de-transito-com-knn" class="section level3">
 <h3>1.1) Reconhecimento de sinais de trânsito com kNN</h3>
-<p>Usarei o dataset signs e o next_sign que possui as observaçoes que irei classificar.</p>
+<p>Usarei o dataset signs e o next_sign, o next_sign possui as observaçoes que irei classificar.</p>
 <pre class="r"><code># carregando o pacote class
 library(class)
 
@@ -148,7 +150,7 @@ sign_types &lt;- signs$sign_type
 knn(train = signs[-1], test = next_sign, cl = sign_types)</code></pre>
 <pre><code>## [1] stop
 ## Levels: pedestrian speed stop</code></pre>
-<p>Explorando o dataset signs</p>
+<p>Explorando o dataset signs.</p>
 <pre class="r"><code># estrutura do signs
 str(signs)</code></pre>
 <pre><code>## 'data.frame':    146 obs. of  49 variables:
@@ -212,7 +214,7 @@ aggregate(r10 ~ sign_type, data = signs, mean)</code></pre>
 ## 1 pedestrian 113.71739
 ## 2      speed  80.63265
 ## 3       stop 132.39216</code></pre>
-<p>Era esperado que os sinais de parada tendem a ter um valor médio de vermelho mais alto. É assim que o kNN identifica sinais semelhantes.</p>
+<p>Era esperado que os sinais de parada tivessem um valor médio de vermelho mais alto. É assim que o kNN identifica sinais semelhantes nesse exemplo.</p>
 <p>Agora vou fazer previsões com dados não vistos e avaliar a performance do kNN.</p>
 <pre class="r"><code># carregando o dataset de teste
 signs_test &lt;- read.csv(file = &quot;signs_test.csv&quot;, sep = &quot;;&quot;)
@@ -231,7 +233,7 @@ table(signs_pred, signs_actual)</code></pre>
 <pre class="r"><code># Compute the accuracy
 mean(signs_pred == signs_actual)</code></pre>
 <pre><code>## [1] 0.9322034</code></pre>
-<p>A matriz de confusão permite verificar os erros do modelo classificador.</p>
+<p>A matriz de confusão permite verificar os erros do modelo classificador, no caso desse exemplo, o kNN.</p>
 </div>
 <div id="testando-outros-valores-de-k" class="section level3">
 <h3>1.2) Testando outros valores de k</h3>
@@ -245,17 +247,17 @@ mean(signs_actual == k_1)</code></pre>
 <pre class="r"><code># k = 7
 k_7 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 7)
 mean(signs_actual == k_7)</code></pre>
-<pre><code>## [1] 0.9491525</code></pre>
+<pre><code>## [1] 0.9661017</code></pre>
 <pre class="r"><code># k = 15
 k_15 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 15)
 mean(signs_actual == k_15)</code></pre>
-<pre><code>## [1] 0.8644068</code></pre>
+<pre><code>## [1] 0.8983051</code></pre>
 <p>O modelo configurado com o k igual a 7 possui a melhor acurácia!</p>
 </div>
 <div id="verificando-como-os-vizinhos-votam" class="section level3">
 <h3>1.3) Verificando como os vizinhos votam</h3>
-<p>Quando vários vizinhos mais próximos realizam um voto, às vezes pode ser útil examinar se os votantes foram unânimes ou amplamente separados.</p>
-<p>Por exemplo, saber mais sobre os votantes na classificação pode permitir que um veículo autônomo use cautela quando haver alguma chance de um sinal de parada estar próximo.</p>
+<p>Quando vários vizinhos mais próximos realizam um voto, pode ser útil examinar se os votantes foram unânimes ou se são amplamente separados.</p>
+<p>Por exemplo, saber mais sobre os votantes na classificação pode permitir que um veículo autônomo seja mais cauteloso quando haver alguma chance de um sinal de parada estar próximo.</p>
 <pre class="r"><code># usando o argumento prob para obter a proporção de votoss da classe vencedora
 sign_pred &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 7, prob = TRUE)
 
@@ -269,6 +271,32 @@ head(sign_pred)</code></pre>
 <pre class="r"><code># verificando as proporções de votos da classe vencedora
 head(sign_prob)</code></pre>
 <pre><code>## [1] 0.5714286 0.5714286 0.8571429 0.5714286 0.8571429 0.5714286</code></pre>
+</div>
+</div>
+<div id="naive-bayes" class="section level2">
+<h2>2) Naive Bayes</h2>
+<p>Naive Bayes usa princípios do campo da estatística para fazer previsões. Apresentarei os fundamentos do método bayesiano aplicado às sugestões de destinos, semelhantes ao iPhone.</p>
+<div id="computando-probabilidades" class="section level3">
+<h3>2.1) Computando probabilidades</h3>
+<p>O dataset where9am contém 91 dias (treze semanas) com dos dados de localização, e se o tipo de dia era de um fim de semana ou dia da semana.</p>
+<p>Usando a fórmula de probabilidade condicional abaixo, calcularei a probabilidade de que essa pessoa desses dados esteja trabalhando no escritório, dado que é um dia da semana.</p>
+<p><span class="math display">\[ P(A|B) = \frac{P(A\ and\ B)}{P(B)} \]</span></p>
+<pre class="r"><code>#carregando o arquivo
+where9am &lt;- read.csv(file = &quot;where9am.csv&quot;, sep = &quot;;&quot;)
+
+# computando a P(A) 
+p_A &lt;- nrow(subset(where9am, location == &quot;office&quot;)) / nrow(where9am)
+
+# computando a P(B)
+p_B &lt;- nrow(subset(where9am, daytype == &quot;weekday&quot;)) / nrow(where9am)
+
+# computando P(A and B)
+p_AB &lt;- nrow(subset(where9am, location == &quot;office&quot; &amp; daytype == &quot;weekday&quot;)) / nrow(where9am)
+
+# computando P(A|B)
+p_A_given_B &lt;- p_AB / p_B
+p_A_given_B</code></pre>
+<pre><code>## [1] 0.6</code></pre>
 </div>
 </div>
 
