@@ -251,7 +251,7 @@ mean(signs_actual == k_7)</code></pre>
 <pre class="r"><code># k = 15
 k_15 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 15)
 mean(signs_actual == k_15)</code></pre>
-<pre><code>## [1] 0.8983051</code></pre>
+<pre><code>## [1] 0.8813559</code></pre>
 <p>O modelo configurado com o k igual a 7 possui a melhor acurácia!</p>
 </div>
 <div id="verificando-como-os-vizinhos-votam" class="section level3">
@@ -278,7 +278,7 @@ head(sign_prob)</code></pre>
 <p>Naive Bayes usa princípios do campo da estatística para fazer previsões. Apresentarei os fundamentos do método bayesiano aplicado às sugestões de destinos, semelhantes ao iPhone.</p>
 <div id="computando-probabilidades" class="section level3">
 <h3>2.1) Computando probabilidades</h3>
-<p>O dataset where9am contém 91 dias (treze semanas) com dos dados de localização, e se o tipo de dia era de um fim de semana ou dia da semana.</p>
+<p>O dataset where9am contém 91 dias (treze semanas) com dos dados de localização de uma pessoa as 9h, e se o tipo de dia era de um fim de semana ou dia da semana.</p>
 <p>Usando a fórmula de probabilidade condicional abaixo, calcularei a probabilidade de que essa pessoa desses dados esteja trabalhando no escritório, dado que é um dia da semana.</p>
 <p><span class="math display">\[ P(A|B) = \frac{P(A\ and\ B)}{P(B)} \]</span></p>
 <pre class="r"><code>#carregando o arquivo
@@ -297,6 +297,60 @@ p_AB &lt;- nrow(subset(where9am, location == &quot;office&quot; &amp; daytype ==
 p_A_given_B &lt;- p_AB / p_B
 p_A_given_B</code></pre>
 <pre><code>## [1] 0.6</code></pre>
+</div>
+<div id="modelo-simples-de-localizacao-com-naive-bayes" class="section level3">
+<h3>2.2) Modelo simples de localização com Naive Bayes</h3>
+<p>Mostrei que a probabilidade dessa pessoa estar no trabalho ou em casa às 9h é altamente dependente se é fim de semana ou um dia da semana.</p>
+<p>Para ver essa descoberta em ação, usarei os dados do where9am para criar um modelo Naive Bayes.</p>
+<p>Assim podemos usar esse modelo para prever o futuro: onde o modelo vai dizer que essa pessoa estará às 9h da quinta-feira e às 9h do sábado?</p>
+<pre class="r"><code># carregando o pacote naivebayes
+library(naivebayes)
+
+# modelo de previsão de localização
+locmodel &lt;- naive_bayes(location ~ daytype, data = where9am)
+
+# previsão da localização as 9h na quinta-feira
+thursday9am &lt;- data.frame(daytype = factor(x = c(&quot;weekday&quot;), levels = c(&quot;weekday&quot;, &quot;weekend&quot;)))
+predict(locmodel, thursday9am)</code></pre>
+<pre><code>## [1] office
+## Levels: appointment campus home office</code></pre>
+<pre class="r"><code># previsão da localização as 9h na quinta-feira
+saturday9am &lt;- data.frame(daytype = factor(x = c(&quot;weekend&quot;), levels = c(&quot;weekday&quot;, &quot;weekend&quot;)))
+predict(locmodel, saturday9am)</code></pre>
+<pre><code>## [1] home
+## Levels: appointment campus home office</code></pre>
+<p>É mais provável essa pessoa estar no escritório às 9h numa quinta-feira, porém em casa no mesmo horário em um sábado!</p>
+</div>
+<div id="examinando-probabilidades" class="section level3">
+<h3>2.3) Examinando probabilidades</h3>
+<p>O pacote naivebayes oferece várias maneiras de espiar o um modelo Naive Bayes por dentro.</p>
+<p>Digitar o nome do objeto do modelo fornece as probabilidades a priori e condicional de cada um dos preditores do modelo. Podemos usar essas probabilidades para calcular as probabilidades posteriores (previstas) na mão, porém o R calcula as probabilidades posteriores se o argumento <em>type = “prob”</em> estiver configurado na função predict().</p>
+<p>Usando esse método, examinarei como a probabilidade de localização prevista do modelo varia de acordo com o dia-a-dia.</p>
+<pre class="r"><code># verificando o modelo de previsão de localização
+locmodel</code></pre>
+<pre><code>## ================================ Naive Bayes ================================= 
+## Call: 
+## naive_bayes.formula(formula = location ~ daytype, data = where9am)
+## 
+## A priori probabilities: 
+## 
+## appointment      campus        home      office 
+##  0.01098901  0.10989011  0.45054945  0.42857143 
+## 
+## Tables: 
+##          
+## daytype   appointment    campus      home    office
+##   weekday   1.0000000 1.0000000 0.3658537 1.0000000
+##   weekend   0.0000000 0.0000000 0.6341463 0.0000000</code></pre>
+<pre class="r"><code># obtendo as probabilidades previstas para quinta-feira as 9h
+predict(locmodel, thursday9am, type = &quot;prob&quot;)</code></pre>
+<pre><code>##      appointment    campus      home office
+## [1,]  0.01538462 0.1538462 0.2307692    0.6</code></pre>
+<pre class="r"><code># obtendo as probabilidades previstas para sábado as 9h
+predict(locmodel, saturday9am, type = &quot;prob&quot;)</code></pre>
+<pre><code>##      appointment campus home office
+## [1,]         NaN    NaN    1    NaN</code></pre>
+<p>Ótimo! Notou que a probabilidade dessa pessoa estar no escritório em um sábado e as 9h é zero?</p>
 </div>
 </div>
 

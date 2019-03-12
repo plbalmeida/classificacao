@@ -155,3 +155,54 @@ p_A_given_B <- p_AB / p_B
 p_A_given_B
 
 ```
+
+### 2.2) Modelo simples de localização com Naive Bayes 
+
+Mostrei que a probabilidade dessa pessoa estar no trabalho ou em casa às 9h é altamente dependente se é fim de semana ou um dia da semana.
+
+Para ver essa descoberta em ação, usarei os dados do where9am para criar um modelo Naive Bayes.
+
+Assim podemos usar esse modelo para prever o futuro: onde o modelo vai dizer que essa pessoa estará às 9h da quinta-feira e às 9h do sábado?
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o pacote naivebayes
+library(naivebayes)
+
+# modelo de previsão de localização
+locmodel <- naive_bayes(location ~ daytype, data = where9am)
+
+# previsão da localização as 9h na quinta-feira
+thursday9am <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")))
+predict(locmodel, thursday9am)
+
+# previsão da localização as 9h na quinta-feira
+saturday9am <- data.frame(daytype = factor(x = c("weekend"), levels = c("weekday", "weekend")))
+predict(locmodel, saturday9am)
+
+```
+
+É mais provável essa pessoa estar no escritório às 9h numa quinta-feira, porém em casa no mesmo horário em um sábado!
+
+### 2.3) Examinando probabilidades
+
+O pacote naivebayes oferece várias maneiras de espiar o um modelo Naive Bayes por dentro.
+
+Digitar o nome do objeto do modelo fornece as probabilidades a priori e condicional de cada um dos preditores do modelo. Podemos usar essas probabilidades para calcular as probabilidades posteriores (previstas) na mão, porém o R calcula as probabilidades posteriores se o argumento *type = "prob"* estiver configurado na função predict().
+
+Usando esse método, examinarei como a probabilidade de localização prevista do modelo varia de acordo com o dia-a-dia.
+
+```{r, message=FALSE, warning=FALSE}
+
+# verificando o modelo de previsão de localização
+locmodel
+
+# obtendo as probabilidades previstas para quinta-feira as 9h
+predict(locmodel, thursday9am, type = "prob")
+
+# obtendo as probabilidades previstas para sábado as 9h
+predict(locmodel, saturday9am, type = "prob")
+
+```
+
+Ótimo! Notou que a probabilidade dessa pessoa estar no escritório em um sábado e as 9h é zero?
