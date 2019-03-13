@@ -206,3 +206,63 @@ predict(locmodel, saturday9am, type = "prob")
 ```
 
 Ótimo! Notou que a probabilidade dessa pessoa estar no escritório em um sábado e as 9h é zero?
+
+## 3) Regressão Logística
+
+A regressão logística envolve ajustar uma curva aos dados numéricos para fazer previsões sobre eventos binários. Indiscutivelmente esse é um dos métodos de aprendizado de máquina mais amplamente utilizados, darei uma visão geral da técnica enquanto ilustro como aplicá-lo aos dados de captação de recursos.
+
+### 3.1) Contruindo um modelo de regressão linear simples
+
+O conjunto de dados donors contém 93.462 registros de pessoas que receberam por correio uma solicitação de angariação de fundos para veteranos militares deficientes físicos. A coluna donated é 1 se a pessoa fez uma doação em resposta à correspondência, e 0 no caso contrário. Este resultado binário será a variável dependente para o modelo de regressão logística.
+
+As colunas restantes são características dos possíveis doadores que podem influenciar no seu comportamento de doação. Estas são as variáveis independentes do modelo.
+
+Ao construir um modelo de regressão, geralmente é útil formar uma hipótese sobre quais variáveis independentes serão preditivas da variável dependente. A coluna bad_address, que é definida como 1 para um endereço de correspondência inválido e 0 caso contrário, parece reduzir as chances de uma doação. Da mesma forma, pode-se suspeitar que o interesse religioso (interest_religion) e o interesse em assuntos de veteranos (interest_veterans) estariam associados a doação.
+
+Usarei esses três fatores para criar um modelo simples de comportamento de doação.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset donors
+donors <- read.csv(file = "donors.csv", sep = ",")
+
+# examiando o dataset e identificando as potenciais variáveis independentes para o modelo
+str(donors)
+
+# explorando a variável dependente
+table(donors$donated)
+
+# modelo
+donation_model <- glm(donated ~ bad_address + interest_religion + interest_veterans, data = donors, family = "binomial")
+
+# verificando o modelo
+summary(donation_model)
+
+```
+
+### 3.2) Fazendo previsões binárias
+
+Muitos dos métodos de aprendizado de máquina em R utilizam a função predict() no objeto do modelo para prever o comportamento futuro. Como padrão o predict() gera previsões em log odds, a menos que o argumento *type = "response"* seja especificade, isso converte de log para  probabilidade.
+
+Como o modelo de regressão logística estima a probabilidade do resultado, cabe a você determinar esse limite (treshold). Por exemplo, se você definir que o treshhold é de 99% ou mais de probabilidade de doação, você perderia muitas pessoas com probabilidades estimadas mais baixas que ainda optam por doar. Este equilíbrio é particularmente importante ser considerado para resultados extremamente desequilibrados, no dataset donors as doações são relativamente raras.
+
+```{r, message=FALSE, warning=FALSE}
+
+# estimadno a probabilidade de doação
+donors$donation_prob <- predict(donation_model, type = "response")
+
+# média de doações
+mean(donors$donated)
+
+# prevendo se doa pela média da probabilidade de doação
+donors$donation_pred <- ifelse(donors$donation_prob > 0.0504, 1, 0)
+
+# calculando a acurácia do modelo
+mean(donors$donated == donors$donation_pred)
+
+```
+
+Com uma acurácia de quase 80%, o modelo parece estar fazendo um bom trabalho. Mas não é bom demais para ser verdade?
+
+Obs.: código em contrução, continua...
+

@@ -251,7 +251,7 @@ mean(signs_actual == k_7)</code></pre>
 <pre class="r"><code># k = 15
 k_15 &lt;- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 15)
 mean(signs_actual == k_15)</code></pre>
-<pre><code>## [1] 0.8813559</code></pre>
+<pre><code>## [1] 0.8983051</code></pre>
 <p>O modelo configurado com o k igual a 7 possui a melhor acurácia!</p>
 </div>
 <div id="verificando-como-os-vizinhos-votam" class="section level3">
@@ -351,6 +351,90 @@ predict(locmodel, saturday9am, type = &quot;prob&quot;)</code></pre>
 <pre><code>##      appointment campus home office
 ## [1,]         NaN    NaN    1    NaN</code></pre>
 <p>Ótimo! Notou que a probabilidade dessa pessoa estar no escritório em um sábado e as 9h é zero?</p>
+</div>
+</div>
+<div id="regressao-logistica" class="section level2">
+<h2>3) Regressão Logística</h2>
+<p>A regressão logística envolve ajustar uma curva aos dados numéricos para fazer previsões sobre eventos binários. Indiscutivelmente esse é um dos métodos de aprendizado de máquina mais amplamente utilizados, darei uma visão geral da técnica enquanto ilustro como aplicá-lo aos dados de captação de recursos.</p>
+<div id="contruindo-um-modelo-de-regressao-linear-simples" class="section level3">
+<h3>3.1) Contruindo um modelo de regressão linear simples</h3>
+<p>O conjunto de dados donors contém 93.462 registros de pessoas que receberam por correio uma solicitação de angariação de fundos para veteranos militares deficientes físicos. A coluna donated é 1 se a pessoa fez uma doação em resposta à correspondência, e 0 no caso contrário. Este resultado binário será a variável dependente para o modelo de regressão logística.</p>
+<p>As colunas restantes são características dos possíveis doadores que podem influenciar no seu comportamento de doação. Estas são as variáveis independentes do modelo.</p>
+<p>Ao construir um modelo de regressão, geralmente é útil formar uma hipótese sobre quais variáveis independentes serão preditivas da variável dependente. A coluna bad_address, que é definida como 1 para um endereço de correspondência inválido e 0 caso contrário, parece reduzir as chances de uma doação. Da mesma forma, pode-se suspeitar que o interesse religioso (interest_religion) e o interesse em assuntos de veteranos (interest_veterans) estariam associados a doação.</p>
+<p>Usarei esses três fatores para criar um modelo simples de comportamento de doação.</p>
+<pre class="r"><code># carregando o dataset donors
+donors &lt;- read.csv(file = &quot;donors.csv&quot;, sep = &quot;,&quot;)
+
+# examiando o dataset e identificando as potenciais variáveis independentes para o modelo
+str(donors)</code></pre>
+<pre><code>## 'data.frame':    93462 obs. of  13 variables:
+##  $ donated          : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ veteran          : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ bad_address      : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ age              : int  60 46 NA 70 78 NA 38 NA NA 65 ...
+##  $ has_children     : int  0 1 0 0 1 0 1 0 0 0 ...
+##  $ wealth_rating    : int  0 3 1 2 1 0 2 3 1 0 ...
+##  $ interest_veterans: int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ interest_religion: int  0 0 0 0 1 0 0 0 0 0 ...
+##  $ pet_owner        : int  0 0 0 0 0 0 1 0 0 0 ...
+##  $ catalog_shopper  : int  0 0 0 0 1 0 0 0 0 0 ...
+##  $ recency          : Factor w/ 2 levels &quot;CURRENT&quot;,&quot;LAPSED&quot;: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ frequency        : Factor w/ 2 levels &quot;FREQUENT&quot;,&quot;INFREQUENT&quot;: 1 1 1 1 1 2 2 1 2 2 ...
+##  $ money            : Factor w/ 2 levels &quot;HIGH&quot;,&quot;MEDIUM&quot;: 2 1 2 2 2 2 2 2 2 2 ...</code></pre>
+<pre class="r"><code># explorando a variável dependente
+table(donors$donated)</code></pre>
+<pre><code>## 
+##     0     1 
+## 88751  4711</code></pre>
+<pre class="r"><code># modelo
+donation_model &lt;- glm(donated ~ bad_address + interest_religion + interest_veterans, data = donors, family = &quot;binomial&quot;)
+
+# verificando o modelo
+summary(donation_model)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = donated ~ bad_address + interest_religion + interest_veterans, 
+##     family = &quot;binomial&quot;, data = donors)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -0.3480  -0.3192  -0.3192  -0.3192   2.5678  
+## 
+## Coefficients:
+##                   Estimate Std. Error  z value Pr(&gt;|z|)    
+## (Intercept)       -2.95139    0.01652 -178.664   &lt;2e-16 ***
+## bad_address       -0.30780    0.14348   -2.145   0.0319 *  
+## interest_religion  0.06724    0.05069    1.327   0.1847    
+## interest_veterans  0.11009    0.04676    2.354   0.0186 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 37330  on 93461  degrees of freedom
+## Residual deviance: 37316  on 93458  degrees of freedom
+## AIC: 37324
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+<div id="fazendo-previsoes-binarias" class="section level3">
+<h3>3.2) Fazendo previsões binárias</h3>
+<p>Muitos dos métodos de aprendizado de máquina em R utilizam a função predict() no objeto do modelo para prever o comportamento futuro. Como padrão o predict() gera previsões em log odds, a menos que o argumento <em>type = “response”</em> seja especificade, isso converte de log para probabilidade.</p>
+<p>Como o modelo de regressão logística estima a probabilidade do resultado, cabe a você determinar esse limite (treshold). Por exemplo, se você definir que o treshhold é de 99% ou mais de probabilidade de doação, você perderia muitas pessoas com probabilidades estimadas mais baixas que ainda optam por doar. Este equilíbrio é particularmente importante ser considerado para resultados extremamente desequilibrados, no dataset donors as doações são relativamente raras.</p>
+<pre class="r"><code># estimadno a probabilidade de doação
+donors$donation_prob &lt;- predict(donation_model, type = &quot;response&quot;)
+
+# média de doações
+mean(donors$donated)</code></pre>
+<pre><code>## [1] 0.05040551</code></pre>
+<pre class="r"><code># prevendo se doa pela média da probabilidade de doação
+donors$donation_pred &lt;- ifelse(donors$donation_prob &gt; 0.0504, 1, 0)
+
+# calculando a acurácia do modelo
+mean(donors$donated == donors$donation_pred)</code></pre>
+<pre><code>## [1] 0.794815</code></pre>
+<p>Com uma acurácia de quase 80%, o modelo parece estar fazendo um bom trabalho. Mas não é bom demais para ser verdade?</p>
+<p>Obs.: código em contrução, continua…</p>
 </div>
 </div>
 
