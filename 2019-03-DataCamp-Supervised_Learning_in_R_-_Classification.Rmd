@@ -207,11 +207,65 @@ predict(locmodel, saturday9am, type = "prob")
 
 Ótimo! Notou que a probabilidade dessa pessoa estar no escritório em um sábado e as 9h é zero?
 
+### 2.4) Um modelo mais sofisticado
+
+O dataset locations registra a localização de uma pessoa a cada hora durante 13 semanas. A cada hora, as informações de rastreamento incluem o tipo de dia (fim de semana ou dia da semana), bem como o tipo de hora (manhã, tarde, noite ou noite).
+
+Usando esses dados, construirei um modelo mais sofisticado para ver como o local previsto dessa pessoa não varia apenas pelo dia da semana, mas também pela hora do dia.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset
+locations <- read.csv(file = "locations.csv", sep = ",")
+
+# modelo Naive Bayes
+locmodel <- naive_bayes(location ~ daytype + hourtype, data = locations)
+
+# prevendo a localização em um dia da semana no fim de tarde
+weekday_afternoon <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")), 
+                                hourtype = factor(x = c("afternoon"), levels = c("afternoon", "evening", "morning", "night")), 
+                                location = factor(x = c("office"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
+predict(locmodel, weekday_afternoon)
+
+# prevendo a localização em um dia da semana no come?o da noite
+weekday_evening <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")), 
+                                hourtype = factor(x = c("evening"), levels = c("afternoon", "evening", "morning", "night")), 
+                                location = factor(x = c("home"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
+predict(locmodel, weekday_evening)
+
+```
+
+Como pode ver o modelo Naive Bayes prevê que essa pessoa estará no escritório de tarde em um dia da semana e em casa de noite.
+
+### 2.5) Preparando-se para circunstâncias imprevistas
+
+Durante o rastreamento dessa pessoa nessas 13 semanas, ela não entrou no escritório durante o fim de semana. Consequentemente, a probabilidade conjunta de P(escritório U fim de semana) = 0.
+
+Vou explorar agora como isso afeta a probabilidade  dessa pessoa ir trabalhar no fim de semana no futuro. Além disso vou usar a correção de Laplace que garante uma pequena probabilidade adicionada a cada resultado que faz com que todos sejam possíveis, mesmo que nunca tenham sido observados anteriormente.
+
+```{r, message=FALSE, warning=FALSE}
+
+# previs?o de localização em um final de semana no fim de tarde
+weekend_afternoon <- data.frame(daytype = factor(x = c("weekend"), levels = c("weekday", "weekend")), 
+                                hourtype = factor(x = c("afternoon"), levels = c("afternoon", "evening", "morning", "night")), 
+                                location = factor(x = c("home"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
+predict(locmodel, weekend_afternoon, type = "prob")
+
+# fazendo um novo modelo com a correção de Laplace
+locmodel2 <- naive_bayes(location ~ daytype + hourtype, data = locations, laplace = 1)
+
+# observando as novas probabilidades do novo modelo
+predict(locmodel2, weekend_afternoon, type = "prob")
+
+```
+
+Que interessante não! Adicionar a correção de Laplace permite termos uma pequena probabilidade dessa pessoa estar no escritório no fim de semana no futuro mesmo que isso nunca tenha sido observado anteriormente.
+
 ## 3) Regressão Logística
 
 A regressão logística envolve ajustar uma curva aos dados numéricos para fazer previsões sobre eventos binários. Indiscutivelmente esse é um dos métodos de aprendizado de máquina mais amplamente utilizados, darei uma visão geral da técnica enquanto ilustro como aplicá-lo aos dados de captação de recursos.
 
-### 3.1) Contruindo um modelo de regressão linear simples
+### 3.1) Contruindo um modelo de regressão logísitca simples
 
 O conjunto de dados donors contém 93.462 registros de pessoas que receberam por correio uma solicitação de angariação de fundos para veteranos militares deficientes físicos. A coluna donated é 1 se a pessoa fez uma doação em resposta à correspondência, e 0 no caso contrário. Este resultado binário será a variável dependente para o modelo de regressão logística.
 
@@ -264,5 +318,204 @@ mean(donors$donated == donors$donation_pred)
 
 Com uma acurácia de quase 80%, o modelo parece estar fazendo um bom trabalho. Mas não é bom demais para ser verdade?
 
-Obs.: código em contrução, continua...
+### 3.3) Calculando a curva ROC e a AUC
+
+Demonstrei anteriormente que a acurácia pela média não é a melhor medida para verificarmos a performance de um modelo com dados desbalanceados. 
+
+Agora vou criar uma curva ROC e calcular a área sob a curva (AUC) para avaliar o modelo de regressão logística de doações que criei anteriormente.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o pacote pROC
+library(pROC)
+
+# criando a curva ROC
+ROC <- roc(donors$donated, donors$donation_prob)
+
+# visualizando a curva ROC
+plot(ROC, col = "blue")
+
+# calculando a área abaixo da curva ROC
+auc(ROC)
+
+```
+
+Com base nessa visualização, o modelo não é bom, é um modelo que não faz nada além de fazer previsões aleatórias.
+
+### 3.4) Codando com variáveis categóricas
+
+As veses o dataset pode conter valores numéricos representando uma feature categórica.
+
+No dataset donors a feature wealth_rating usa número para indicar o nível de renda do doador:
+
+* **0** = Unknown (desconhecido)
+* **1** = Low (baixo)
+* **2** = Medium (médio)
+* **3** = High (alto)
+
+Vou mostrar como preparar os dados nessa situação e examinar seu impacto no modelo de regressão logística.
+
+```{r, message=FALSE, warning=FALSE}
+
+# convertendo o nível de renda em fator
+donors$wealth_rating <- factor(donors$wealth_rating, 
+                               levels = c(0, 1, 2, 3), 
+                               labels = c("Unknown", "Low", "Medium", "High"))
+
+# usando o relevel() para mudar a referência da categoria
+donors$wealth_rating <- relevel(donors$wealth_rating, ref = "Medium")
+
+# vendo como essa feature transformada impacta no modelo de regressão logística
+summary(glm(donated ~ wealth_rating, data = donors, family = "binomial"))
+
+```
+
+Pense como seria a saída desse modelo se essa variável tivesse sido deixada como uma coluna numérica...
+
+### 3.5) Lidando com  valores faltantes (missing data)
+
+Alguns dos doadores em potencial têm dados de idade ausentes. Infelizmente o R exclui todos os casos com valores de NA ao criar um modelo de regressão.
+
+Uma solução alternativa é substituir ou imputar os valores ausentes com um valor estimado. Depois de fazer isso, você também pode criar um indicador de dados missing para modelar a possibilidade de casos com dados ausentes serem diferentes de algum modo daqueles sem dados.
+
+```{r, message=FALSE, warning=FALSE}
+
+# encontrando a média de idade
+summary(donors$age)
+
+# imputando dados de idade faltantes com a média
+donors$imputed_age <- ifelse(is.na(donors$age), 61.65, donors$age)
+
+# criando indicador para dados faltantes da feature de idade
+donors$missing_age <- ifelse(is.na(donors$age), 1, 0)
+
+```
+
+Esta é uma maneira de lidar com dados missing, mas tenha cuidado! Às vezes, dados ausentes precisam ser tratados usando métodos mais complicados.
+
+### 3.6) Construindo um modelo mais sofisticado
+
+Um dos melhores preditores de doações futuras é verificar o histórico recente de doações grandes e que foram mais frequentes. Em termos de marketing, isso é conhecido como R/F/M:
+
+* Recência (Recency)
+* Freqüência (Frequency)
+* Dinheiro (Money)
+
+Os doadores que não doaram recentemente e com frequência, podem ser especialmente propensos a doar de novo, em outras palavras, o impacto combinado de recência e frequência pode ser maior que a soma dos efeitos separados.
+
+Como esses preditores juntos têm um impacto maior na variável dependente, seu efeito conjunto deve ser modelado como uma interação.
+
+```{r, message=FALSE, warning=FALSE}
+
+# contruindo um modelo com recência, frequência e dinheiro (RFM)
+rfm_model <- glm(donated ~ recency * frequency + money, data = donors, family = "binomial")
+
+# verificando os parâmetros do modelo
+summary(rfm_model)
+
+# prevendo as probabilidades do modelo
+rfm_prob <- predict(rfm_model, data = donors, type = "response")
+
+# visualizando a curva ROC do modelo
+library(pROC)
+ROC <- roc(donors$donated, rfm_prob)
+plot(ROC, col = "red")
+auc(ROC)
+
+```
+
+Com base na curva ROC, podemos ver que padrões passados de doação são certamente preditivos de doações futuras!
+
+### 3.7) Construindo um modelo de regressão stepwise
+
+Na ausência de expertise em regressão logística, a regressão stepwise pode ajudar na busca dos preditores mais importantes do resultado de interesse.
+
+Aqui vou usar o forward stepwise para adicionar preditores ao modelo, um a um, até que nenhum benefício adicional seja visto com as outras features.
+
+```{r, message=FALSE, warning=FALSE}
+
+# modelo nulo sem features preditoras
+null_model <- glm(donated ~ 1, data = donors, family = "binomial")
+
+# modelo com as potencias features preditoras
+full_model <- glm(donated ~ ., data = donors, family = "binomial")
+
+# modelo usando forward stepwise
+step_model <- step(null_model, scope = list(lower = null_model, upper = full_model), direction = "forward")
+
+# prevendo probabilidades
+step_prob <- predict(step_model, type = "response")
+
+# visualizando a curva ROC do modelo stepwise
+library(pROC)
+ROC <- roc(donors$donated, step_prob)
+plot(ROC, col = "red")
+auc(ROC)
+
+```
+
+Apesar das ressalvas sobre a regressão usando a técnica de forward stepwise, o resultado do modelo é relativamente melhor.
+
+## 4) Árvore de classificação
+
+As árvores de classificação usam estruturas semelhantes dos fluxogramas para tomar decisões. Como os humanos podem entender melhor essas estruturas de árvores, as árvores de classificação são úteis quando a transparência é necessária, como na aprovação de empréstimos. Usarei o dataset Lending Club para simular esse cenário.
+
+### 4.1) Contruindo uma árvore de decisão simples
+
+O dataset loans que usarei aqui é sobre empréstimos e contém 7.142 pessoas selecionadas aleatoriamente que receberam empréstimos do Lending Club, uma empresa de empréstimos P2P (<https://pt.wikipedia.org/wiki/Empr%C3%A9stimos_P2P>) dos Estados Unidos.
+
+Usarei uma árvore de decisão para tentar aprender padrões no resultado desses empréstimos (pagos ou inadimplentes) com base no valor do empréstimo solicitado e na pontuação de crédito no momento da solicitação.
+
+Vou comparar na sequência as previsões da árvore para um candidato com bom crédito versus um com crédito ruim.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset loans
+loans <- read.csv(file = "loans.csv", sep = ",")
+
+# carregando o pacote rpart
+library(rpart)
+
+# construindo um modelo de empréstimo prevendo o resultado do empréstimo versus o valor do empréstimo e a pontuação de crédito
+loan_model <- rpart(outcome ~ loan_amount + credit_score, data = loans, method = "class", control = rpart.control(cp = 0))
+
+# fazendo previsão para laguém com crédito bom
+good_credit <- data.frame(loan_amount = c("LOW"), 
+                          emp_length = c("10+ years"),
+                          home_ownership = c("MORTGAGE"),
+                          income = c("HIGH"),
+                          loan_purpose = c("major_purchase"),
+                          debt_to_income = c("AVERAGE"),
+                          credit_score = c("HIGH"),
+                          recent_inquiry = c("NO"),
+                          deliquent = c("NEVER"),
+                          credit_accounts = c("MANY"),
+                          bad_public_record = c("NO"),
+                          credit_utilization = c("LOW"),
+                          past_bankrupt = c("NO"),
+                          outcome = c("repaid"))
+
+predict(loan_model, good_credit, type = "class")
+
+# fazendo previsão com alguém com crédito ruim
+bad_credit <- data.frame(loan_amount = c("LOW"), 
+                          emp_length = c("6 - 9 years"),
+                          home_ownership = c("RENT"),
+                          income = c("MEDIUM"),
+                          loan_purpose = c("car"),
+                          debt_to_income = c("LOW"),
+                          credit_score = c("LOW"),
+                          recent_inquiry = c("YES"),
+                          deliquent = c("NEVER"),
+                          credit_accounts = c("FEW"),
+                          bad_public_record = c("NO"),
+                          credit_utilization = c("HIGH"),
+                          past_bankrupt = c("NO"),
+                          outcome = c("repaid"))
+
+predict(loan_model, bad_credit, type = "class")
+
+```
+
+# Obs.: código em contrução, continua...
 
