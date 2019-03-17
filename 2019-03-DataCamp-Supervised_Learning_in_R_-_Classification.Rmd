@@ -460,6 +460,34 @@ Apesar das ressalvas sobre a regressão usando a técnica de forward stepwise, o
 
 As árvores de classificação usam estruturas semelhantes dos fluxogramas para tomar decisões. Como os humanos podem entender melhor essas estruturas de árvores, as árvores de classificação são úteis quando a transparência é necessária, como na aprovação de empréstimos. Usarei o dataset Lending Club para simular esse cenário.
 
+**Mas antes vou apronfundar um pouco em como a árvore de decisão funciona.**
+
+A árvore de decisão divide o dataset em partições com valores similares da variável dependente. No caso dos dados de empréstimo os dados estão dividos entre aqueles que podem pagar o empréstimo (classe "repaid" da variável dependente) e os que não podem pagar de volta o empréstimo (classe "default" da variável dependente).
+
+Vamos supor que a árvore de decisão considera dois aspectos de cada pessoa que solicita um empréstimo: o score de crédito e o valor do empréstimo solicitado.
+
+A figura abaixo mostra essas características na relação dos dados quando o empréstimo é pago.
+
+![](decision_tree1.png)
+
+Primeiro, o algoritmo explode os dados em dois grupos homogêneos, em alto e baixo score de crédito.
+
+![](decision_tree2.png)
+
+Depois divide novamente os os dados em um grupo com alto score de crédito e solicitação de um alto valor de empréstimo, e um grupo com alto score de crédito e solicitação de um valor baixo de empréstimo.
+
+![](decision_tree3.png)
+
+Cada divisão dessa gera um nó que estrutura uma árvore de classificação como podemos ver na sequência.
+
+![](decision_tree4.png)
+
+Se o score de crédito é baixo, ele prevê que o solicitante não pagará, então o solicitante será classificado como "default".
+
+Se o score de crédito é alto e valor solicitado de empréstimo é alto, o modelo tambpem prevê que ele não pagará, então o solicitante será classificado como "default".
+
+Agora se o score do solicitante for alto, e o valor solicitado de empréstimo for baixo, então o solicitante pode pagar o empréstimo, e ele é  como "repaid".
+
 ### 4.1) Contruindo uma árvore de decisão simples
 
 O dataset loans que usarei aqui é sobre empréstimos e contém 7.142 pessoas selecionadas aleatoriamente que receberam empréstimos do Lending Club, uma empresa de empréstimos P2P (<https://pt.wikipedia.org/wiki/Empr%C3%A9stimos_P2P>) dos Estados Unidos.
@@ -517,5 +545,29 @@ predict(loan_model, bad_credit, type = "class")
 
 ```
 
-# Obs.: código em contrução, continua...
+### 4.2) Visualizando árvores de classificação
+
+Nos EUA devido às regras do governo para evitar discriminação ilegal, os credores são obrigados a explicar por que um pedido de empréstimo foi rejeitado.
+
+A estrutura das árvores de classificação pode ser representada visualmente, o que ajuda a entender como a árvore toma suas decisões.
+
+```{r, message=FALSE, warning=FALSE}
+
+# verificando o modelo
+loan_model
+
+# carregando o pacote rpart.plot
+library(rpart.plot)
+
+# visualizando a árvore de classificação
+rpart.plot(loan_model)
+
+# visualizando a árvore de classificação com algumas configurações de visualização ajustadas
+rpart.plot(loan_model, type = 3, box.palette = c("red", "green"), fallen.leaves = TRUE)
+
+```
+
+O modelo que gerei vai aprovar empréstimo para alguém que solicita um valor baixo de empréstimo ou alguém que possui um score de crédito alto.
+
+# Código em contrução, logo menos atualizo ele ;)
 
