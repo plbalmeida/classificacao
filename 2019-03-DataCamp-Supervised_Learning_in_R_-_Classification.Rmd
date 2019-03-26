@@ -725,5 +725,45 @@ mean(loans_test$pred == loans_test$outcome)
 
 ```
 
-# Código em contrução, logo menos atualizo ele ;)
+Opa! Como na pré-poda, a criação de uma árvore mais simples melhorou o desempenho da árvore de classificação nos dados de teste.
+
+### 4.5) Introdução ao modelo de random forest
+
+Parece contra-intuitivo pensar que um grupo de árvores de classificação construídas usando pequenos subconjuntos aleatórios do dataset pode ter uma acurácia melhor do que uma única árvore de classificação mais complexa, onde é utilizado todo o dataset para o modelo aprender.
+
+![](decision_tree12.png)
+
+Métodos de machine learning como o random forest são chamados de ensemble methods. Os modelos de ensemble methods são baseados no princípio de que pequenos modelos que não aprendem tão bem se tornam fortes quando trabalham em equipe com outros modelos.  
+
+![](decision_tree13.png)
+
+No random forest, cada árvore de classificação é chamada para fazer uma previsão, e a previsão geral do grupo é determinada pela maioria dos votos. Embora cada árvore refletir apenas uma parte restrita dos dados, o consenso geral é fortalecido por essas diversas perspectivas.
+
+Grupos de árvores de classificação podem ser combinados em um ensemble (conjunto) que gera uma única previsão permitindo que as árvores "votem" no resultado. Por que alguém pensaria que isso poderia resultar em previsões mais precisas do que uma única árvore de classificação?
+
+Resposta: a diversidade entre as árvores de classificação pode levar o modelo a descobrir padrões mais sutis e padrões mais importantes nos dados do que uma única árvore de classificação, isso tem haver com o princípio de trabalho em equipe dos ensemble methods, no qual o random forest é um.
+
+#### 4.5.1) Construindo um modelo de random forest
+
+O modelo de random forest pode assustar a princípio por conter centenas de árvores, pode dar idéia de que o crescimento de uma floresta de árvores de classificação seja muito difícil, mas não é!
+
+Usando o pacote randomForest vou construir um modelo de random forest e comaparar a acurácia com as árvore de classificação que construi anteriormente.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o pacote randomForest
+library(randomForest)
+
+# modelo de random forest
+loan_model <- randomForest(outcome ~ ., data = loans_train)
+
+# computando a acurácia do modelo
+loans_test$pred <- predict(loan_model, loans_test)
+mean(loans_test$pred == loans_test$outcome)
+
+```
+
+É importante salientar que devido à natureza aleatória do random forest, os resultados podem variar um pouco cada vez que o modelo for criado!
+
+## Fim ;*
 
