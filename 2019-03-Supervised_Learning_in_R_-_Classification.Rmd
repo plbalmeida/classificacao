@@ -17,11 +17,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 O kNN é um bom método para começar a entender o aprendizado de máquina supervisionado de classificação. Nessa primeira parte do código apresentarei a aplicação do kNN no reconhecimento de sinais de trânsito de veículos autônomos.
 
+<center>
 ![](knn_1.jpg)
+</center>
+
 
 Alguns aspectos da condução autônoma de veículos envolvem a classificação de imagens, por exemplo, quando a câmera de um veículo observa um objeto, deve classificar o objeto antes que ele possa reagir. Embora os algoritmos de carros autônomos sejam sofisticados, podemos simular aspectos de seu comportamento. Neste exemplo, vamos supor que o veículo possa ver mas não distinguir os sinais de trânsito. Seu trabalho será usar o kNN para classificar o tipo do sinal.
 
+<center>
 ![](knn_2.jpg)
+</center>
 
 Já é possível identificar algumas semelhanças!
 
@@ -490,19 +495,27 @@ Vamos supor que a árvore de decisão considera dois aspectos de cada pessoa que
 
 A figura abaixo mostra essas características na relação dos dados quando o empréstimo é pago.
 
+<center>
 ![](decision_tree1.png)
+</center>
 
 Primeiro, o algoritmo explode os dados em dois grupos homogêneos, em alto e baixo score de crédito.
 
+<center>
 ![](decision_tree2.png)
+</center>
 
 Depois divide novamente os os dados em um grupo com alto score de crédito e solicitação de um alto valor de empréstimo, e um grupo com alto score de crédito e solicitação de um valor baixo de empréstimo.
 
+<center>
 ![](decision_tree3.png)
+</center>
 
 Cada divisão dessa gera um nó que estrutura uma árvore de classificação como podemos ver na sequência.
 
+<center>
 ![](decision_tree4.png)
+</center>
 
 Se o score de crédito é baixo, ele prevê que o solicitante não pagará, então o solicitante será classificado como "default".
 
@@ -595,11 +608,15 @@ O modelo que gerei vai aprovar empréstimo para alguém que solicita um valor ba
 
 Agora vou apresentar os fatores que podem nos ajudar a produzir modelos de classificação mais rosbustos. Nos vimos que a árvore de classificação divide os dados em partes homgêneas, e conforme a árvore de classificação cresce ela cria partes ainda menores e mais homogêneas a figura abaixo:
 
+<center>
 ![](decision_tree5.png)
+</center>
 
 Olhando esses dados você pode ter imaginado que seria mais fácil traçar uma reta diagonal para separar os dados...
 
+<center>
 ![](decision_tree6.png)
+</center>
 
 Infelizmente o modelo de árvore de classificação não pode fazer isso pois uma reta diagona dessa requer que ela considere duas features de uma vez.
 
@@ -613,7 +630,9 @@ Quando um modelo de machine learning tem overfit nos dados de treino, é necess�
 
 Por isso é importante simular o uso de dados não vistos separando nossos dados em dados de treino e dados de teste, uma maneira simples de construir dados de teste envolve pegar uma pequena porção de maneira aleatória do dataset original. Essa é uma maneira segura de estimar a performance do modelo com dados não vistos.
 
+<center>
 ![](decision_tree7.png)
+</center>
 
 Se o modelo performar pior com os dados de teste do que com os dados de treino, fica evidente que o modelo está com overfit!
 
@@ -677,11 +696,15 @@ A pré-poda é uma delas!
 
 A figura abaixo mostra uma árvore de classificação que foi podada no 3º nível da árvore: 
 
+<center>
 ![](decision_tree8.png)
+</center>
 
 Outro método de pré-poda requer um número mínimo de observações em um nó para a divisão ocorrer:
 
+<center>
 ![](decision_tree9.png)
+</center>
 
 Ambas das estratégias de pré-poda apresentadas previne as árvore de classificação de crescerem muito, porém isso pode fazer com que algum padrão importante não seja capturado pelo modelo.
 
@@ -691,11 +714,15 @@ Na pós-poda, os nós e suas derivações com a menor impacto na acurácia do mo
 
 A figura abaixo mostra uma árvore de classificação que cresceu em 4 níveis, porém foi podada na derivação destacada pois essa parte não contribuia significativamente para a acurácia do modelo.
 
+<center>
 ![](decision_tree10.png)
+</center>
 
 A relação entre a complexidade de uma árvore de decisão e asua acurácia pode ser visualizada no gráfico abaixo: 
 
+<center>
 ![](decision_tree11.png)
+</center>
 
 Conforme a árvore de classificação se torna mais complexa, o modelo comete menos erros, mas embora o desempenho melhore bastante no início, ele melhora bem pouco para os aumentos de complexidade posteriores, isso fica bem evidente no gráfico acima quando a curva começa a ficar mais constante para a variável da taxa de erro.
 
@@ -753,11 +780,15 @@ Opa! Como na pré-poda, a criação de uma árvore mais simples melhorou o desem
 
 Parece contra-intuitivo pensar que um grupo de árvores de classificação construídas usando pequenos subconjuntos aleatórios do dataset pode ter uma acurácia melhor do que uma única árvore de classificação mais complexa, onde é utilizado todo o dataset para o modelo aprender.
 
+<center>
 ![](decision_tree12.png)
+</center>
 
 Métodos de machine learning como o random forest são chamados de ensemble methods. Os modelos de ensemble methods são baseados no princípio de que pequenos modelos que não aprendem tão bem se tornam fortes quando trabalham em equipe com outros modelos.  
 
+<center>
 ![](decision_tree13.png)
+</center>
 
 No random forest, cada árvore de classificação é chamada para fazer uma previsão, e a previsão geral do grupo é determinada pela maioria dos votos. Embora cada árvore refletir apenas uma parte restrita dos dados, o consenso geral é fortalecido por essas diversas perspectivas.
 
@@ -788,4 +819,3 @@ mean(loans_test$pred == loans_test$outcome)
 É importante salientar que devido à natureza aleatória do random forest, os resultados podem variar um pouco cada vez que o modelo for criado!
 
 ## Fim ;*
-
