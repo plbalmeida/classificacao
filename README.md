@@ -1,6 +1,6 @@
 # Tutorial de aprendizagem supervisionada de classificação em R
 
-Baseado no curso Supervised Learning in R: Classification da DataCamp.
+Machine learning (ou aprendizagem de máquina) é a utilização de métodos estatísticos computacionais para aprender sobre dados e conseguir insights para tomada de decisão. Esse RMarkdown foca em um tipo de machine learning chamado aprendizagem supervisionada de classificação. Prever se uma pessoa pode ter algum tipo de doença, prever o tempo e prever bons pagadores são alguns exemplos de problemas de classificação.
 
 * O código está no formato do RMarkdown.
 
@@ -40,4 +40,6 @@ Conteúdo do tutorial:
 4.4.2) Fazendo uma boa poda!;
 4.5) Introdução ao modelo de random forest;
 4.5.1) Construindo um modelo de random forest
+
+*Baseado no curso Supervised Learning in R: Classification da DataCamp.
 
