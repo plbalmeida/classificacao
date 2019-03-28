@@ -1,0 +1,791 @@
+---
+title: "Aprendizagem Supervisionada de Classificação em R"
+author: "Pedro Almeida"
+date: "11 de março de 2019"
+output: html_document
+---
+
+Machine learning (ou aprendizagem de máquina) é a utilização de métodos estatísticos computacionais para aprender sobre dados e conseguir insights para tomada de decisão. Esse RMarkdown foca em um tipo de machine learning chamado aprendizagem supervisionada de classificação. Prever se uma pessoa pode ter algum tipo de doença, prever o tempo e prever bons pagadores são alguns exemplos de problemas de classificação.
+
+A seguir vou exmplorar 4 técnicas de aprendizagem supervisionada de classificação, vamos lá!
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1) k-Nearest Neighbors (kNN)
+
+O kNN é um bom método para começar a entender o aprendizado de máquina supervisionado de classificação. Nessa primeira parte do código apresentarei a aplicação do kNN no reconhecimento de sinais de trânsito de veículos autônomos.
+
+![](knn_1.jpg)
+
+Alguns aspectos da condução autônoma de veículos envolvem a classificação de imagens, por exemplo, quando a câmera de um veículo observa um objeto, deve classificar o objeto antes que ele possa reagir. Embora os algoritmos de carros autônomos sejam sofisticados, podemos simular aspectos de seu comportamento. Neste exemplo, vamos supor que o veículo possa ver mas não distinguir os sinais de trânsito. Seu trabalho será usar o kNN para classificar o tipo do sinal.
+
+![](knn_2.jpg)
+
+Já é possível identificar algumas semelhanças!
+
+Nessa situação o modelo de kNN tem a vantagem de classificar conforme a similaridade a outros sinais do mesmo tipo, por exemplo, se o carro observar um sinal que seja semelhante àquele do grupo de sinais de parada, o carro provavelmente vai parar.
+
+Então, como o kNN aprende qual o vizinho mais próximo e decide qual dos dois sinais são semelhantes?
+
+Faz isso literalmente medindo a distância entre eles.
+
+Isso não quer dizer que ele mede a distância entre os sinais no espaço físico (um sinal de parada em São Paulo deve ser o mesmo que um sinal de parada no Rio de Janeiro) mas exerga as propriedades dos sinais como coordenadas no espaço cartesiano!
+
+Considere por exemplo a cor do sinal. Ao imaginar a cor como um espaço tridimensional que mede os níveis de vermelho, verde e azul, os sinais de cores semelhantes estão localizados naturalmente próximos uns dos outros.
+
+Uma vez que que os sinais estão colocados dessa maneira, você pode medir a similaridade dos dados pela distância Euclidiana, que é dada pela seguinte fórmula:
+
+$$ dist(p,q) = \sqrt{(p_1 - q_1)^2 + (p_2 - q_2)^2 +...+(p_n - q_n)^2} $$
+
+### 1.1) Reconhecimento de sinais de trânsito com kNN
+
+Usarei o dataset signs e o next_sign, o next_sign possui as observaçoes que irei classificar.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o pacote class
+library(class)
+
+# carregando os datasets
+signs <- read.csv(file = "signs.csv", sep = ";")
+next_sign <- read.csv(file = "next_sign.csv", sep = ";")
+
+# criando o vetor dos rótulos
+sign_types <- signs$sign_type
+
+# classificando o próximo sinal observado
+knn(train = signs[-1], test = next_sign, cl = sign_types)
+
+```
+
+Explorando o dataset signs.
+
+```{r, message=FALSE, warning=FALSE}
+
+# estrutura do signs
+str(signs)
+
+# contanto o número de sinais de cada tipo
+table(signs$sign_type)
+
+# checando a média da feature r10 (vermelho) por tipo de sinal
+aggregate(r10 ~ sign_type, data = signs, mean)
+
+```
+
+Era esperado que os sinais de parada tivessem um valor médio de vermelho mais alto. É assim que o kNN identifica sinais semelhantes nesse exemplo.
+
+Agora vou fazer previsões com dados não vistos e avaliar a performance do kNN. 
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset de teste
+signs_test <- read.csv(file = "signs_test.csv", sep = ";")
+
+# usando o kNN para identificar os sinais no dataset de teste
+signs_pred <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types)
+
+# matriz de confusão das previsões X os valores atuais
+signs_actual <- signs_test$sign_type
+table(signs_pred, signs_actual)
+
+# Compute the accuracy
+mean(signs_pred == signs_actual)
+
+```
+
+A matriz de confusão permite verificar os erros do modelo classificador, no caso desse exemplo, o kNN.
+
+### 1.2) Testando outros valores de k
+
+A função knn() do pacote class usa apenas o vizinho mais próximo.
+
+Definir o parâmetro k permite que o algoritmo considere vizinhos mais próximos adicionais. Isso amplia a coleção de vizinhos que votarão na classe prevista.
+
+Vou comparar os valores k de 1, 7 e 15 para examinar o impacto na precisão da classificação do sinal de trânsito.
+
+```{r, message=FALSE, warning=FALSE}
+
+# default, k = 1
+k_1 <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types)
+mean(signs_actual == k_1)
+
+# k = 7
+k_7 <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 7)
+mean(signs_actual == k_7)
+
+# k = 15
+k_15 <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 15)
+mean(signs_actual == k_15)
+
+```
+
+O modelo configurado com o k igual a 7 possui a melhor acurácia!
+
+### 1.3) Verificando como os vizinhos votam
+
+Quando vários vizinhos mais próximos realizam um voto, pode ser útil examinar se os votantes foram unânimes ou se são amplamente separados.
+
+Por exemplo, saber mais sobre os votantes na classificação pode permitir que um veículo autônomo seja mais cauteloso quando haver alguma chance de um sinal de parada estar próximo.
+
+```{r, message=FALSE, warning=FALSE}
+
+# usando o argumento prob para obter a proporção de votoss da classe vencedora
+sign_pred <- knn(train = signs[-1], test = signs_test[-1], cl = sign_types, k = 7, prob = TRUE)
+
+# obtendo o atributo "prob" das classes preditas
+sign_prob <- attr(sign_pred, "prob")
+
+# verificando as cinco primeiras predições
+head(sign_pred)
+
+# verificando as proporções de votos da classe vencedora
+head(sign_prob)
+
+```
+
+## 2) Naive Bayes
+
+Naive Bayes usa princípios do campo da estatística para fazer previsões. Apresentarei os fundamentos do método bayesiano aplicado às sugestões de destinos, semelhantes ao iPhone.
+
+### 2.1) Computando probabilidades
+
+O dataset where9am contém 91 dias (treze semanas) com dos dados de localização de uma pessoa as 9h, e se o tipo de dia era  de um fim de semana ou dia da semana.
+
+Usando a fórmula de probabilidade condicional abaixo, calcularei a probabilidade de que essa pessoa desses dados esteja trabalhando no escritório, dado que é um dia da semana.
+
+$$ P(A|B) = \frac{P(A\ and\ B)}{P(B)} $$
+
+```{r, message=FALSE, warning=FALSE}
+
+#carregando o arquivo
+where9am <- read.csv(file = "where9am.csv", sep = ";")
+
+# computando a P(A) 
+p_A <- nrow(subset(where9am, location == "office")) / nrow(where9am)
+
+# computando a P(B)
+p_B <- nrow(subset(where9am, daytype == "weekday")) / nrow(where9am)
+
+# computando P(A and B)
+p_AB <- nrow(subset(where9am, location == "office" & daytype == "weekday")) / nrow(where9am)
+
+# computando P(A|B)
+p_A_given_B <- p_AB / p_B
+p_A_given_B
+
+```
+
+### 2.2) Modelo simples de localização com Naive Bayes 
+
+Mostrei que a probabilidade dessa pessoa estar no trabalho ou em casa às 9h é altamente dependente se é fim de semana ou um dia da semana.
+
+Para ver essa descoberta em ação, usarei os dados do where9am para criar um modelo Naive Bayes.
+
+Assim podemos usar esse modelo para prever o futuro: onde o modelo vai dizer que essa pessoa estará às 9h da quinta-feira e às 9h do sábado?
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o pacote naivebayes
+library(naivebayes)
+
+# modelo de previsão de localização
+locmodel <- naive_bayes(location ~ daytype, data = where9am)
+
+# previsão da localização as 9h na quinta-feira
+thursday9am <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")))
+predict(locmodel, thursday9am)
+
+# previsão da localização as 9h na quinta-feira
+saturday9am <- data.frame(daytype = factor(x = c("weekend"), levels = c("weekday", "weekend")))
+predict(locmodel, saturday9am)
+
+```
+
+É mais provável essa pessoa estar no escritório às 9h numa quinta-feira, porém em casa no mesmo horário em um sábado!
+
+### 2.3) Examinando probabilidades
+
+O pacote naivebayes oferece várias maneiras de espiar o um modelo Naive Bayes por dentro.
+
+Digitar o nome do objeto do modelo fornece as probabilidades a priori e condicional de cada um dos preditores do modelo. Podemos usar essas probabilidades para calcular as probabilidades posteriores (previstas) na mão, porém o R calcula as probabilidades posteriores se o argumento *type = "prob"* estiver configurado na função predict().
+
+Usando esse método, examinarei como a probabilidade de localização prevista do modelo varia de acordo com o dia-a-dia.
+
+```{r, message=FALSE, warning=FALSE}
+
+# verificando o modelo de previsão de localização
+locmodel
+
+# obtendo as probabilidades previstas para quinta-feira as 9h
+predict(locmodel, thursday9am, type = "prob")
+
+# obtendo as probabilidades previstas para sábado as 9h
+predict(locmodel, saturday9am, type = "prob")
+
+```
+
+Ótimo! Notou que a probabilidade dessa pessoa estar no escritório em um sábado e as 9h é zero?
+
+### 2.4) Um modelo mais sofisticado
+
+O dataset locations registra a localização de uma pessoa a cada hora durante 13 semanas. A cada hora, as informações de rastreamento incluem o tipo de dia (fim de semana ou dia da semana), bem como o tipo de hora (manhã, tarde, noite ou noite).
+
+Usando esses dados, construirei um modelo mais sofisticado para ver como o local previsto dessa pessoa não varia apenas pelo dia da semana, mas também pela hora do dia.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset
+locations <- read.csv(file = "locations.csv", sep = ",")
+
+# modelo Naive Bayes
+locmodel <- naive_bayes(location ~ daytype + hourtype, data = locations)
+
+# prevendo a localização em um dia da semana no fim de tarde
+weekday_afternoon <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")), 
+                                hourtype = factor(x = c("afternoon"), levels = c("afternoon", "evening", "morning", "night")), 
+                                location = factor(x = c("office"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
+predict(locmodel, weekday_afternoon)
+
+# prevendo a localização em um dia da semana no come?o da noite
+weekday_evening <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")), 
+                                hourtype = factor(x = c("evening"), levels = c("afternoon", "evening", "morning", "night")), 
+                                location = factor(x = c("home"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
+predict(locmodel, weekday_evening)
+
+```
+
+Como pode ver o modelo Naive Bayes prevê que essa pessoa estará no escritório de tarde em um dia da semana e em casa de noite.
+
+### 2.5) Preparando-se para circunstâncias imprevistas
+
+Durante o rastreamento dessa pessoa nessas 13 semanas, ela não entrou no escritório durante o fim de semana. Consequentemente, a probabilidade conjunta de P(escritório U fim de semana) = 0.
+
+Vou explorar agora como isso afeta a probabilidade  dessa pessoa ir trabalhar no fim de semana no futuro. Além disso vou usar a correção de Laplace que garante uma pequena probabilidade adicionada a cada resultado que faz com que todos sejam possíveis, mesmo que nunca tenham sido observados anteriormente.
+
+```{r, message=FALSE, warning=FALSE}
+
+# previs?o de localização em um final de semana no fim de tarde
+weekend_afternoon <- data.frame(daytype = factor(x = c("weekend"), levels = c("weekday", "weekend")), 
+                                hourtype = factor(x = c("afternoon"), levels = c("afternoon", "evening", "morning", "night")), 
+                                location = factor(x = c("home"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
+predict(locmodel, weekend_afternoon, type = "prob")
+
+# fazendo um novo modelo com a correção de Laplace
+locmodel2 <- naive_bayes(location ~ daytype + hourtype, data = locations, laplace = 1)
+
+# observando as novas probabilidades do novo modelo
+predict(locmodel2, weekend_afternoon, type = "prob")
+
+```
+
+Que interessante não! Adicionar a correção de Laplace permite termos uma pequena probabilidade dessa pessoa estar no escritório no fim de semana no futuro mesmo que isso nunca tenha sido observado anteriormente.
+
+## 3) Regressão Logística
+
+A regressão logística envolve ajustar uma curva aos dados numéricos para fazer previsões sobre eventos binários. Indiscutivelmente esse é um dos métodos de aprendizado de máquina mais amplamente utilizados, darei uma visão geral da técnica enquanto ilustro como aplicá-lo aos dados de captação de recursos.
+
+### 3.1) Contruindo um modelo de regressão logísitca simples
+
+O conjunto de dados donors contém 93.462 registros de pessoas que receberam por correio uma solicitação de angariação de fundos para veteranos militares deficientes físicos. A coluna donated é 1 se a pessoa fez uma doação em resposta à correspondência, e 0 no caso contrário. Este resultado binário será a variável dependente para o modelo de regressão logística.
+
+As colunas restantes são características dos possíveis doadores que podem influenciar no seu comportamento de doação. Estas são as variáveis independentes do modelo.
+
+Ao construir um modelo de regressão, geralmente é útil formar uma hipótese sobre quais variáveis independentes serão preditivas da variável dependente. A coluna bad_address, que é definida como 1 para um endereço de correspondência inválido e 0 caso contrário, parece reduzir as chances de uma doação. Da mesma forma, pode-se suspeitar que o interesse religioso (interest_religion) e o interesse em assuntos de veteranos (interest_veterans) estariam associados a doação.
+
+Usarei esses três fatores para criar um modelo simples de comportamento de doação.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset donors
+donors <- read.csv(file = "donors.csv", sep = ",")
+
+# examiando o dataset e identificando as potenciais variáveis independentes para o modelo
+str(donors)
+
+# explorando a variável dependente
+table(donors$donated)
+
+# modelo
+donation_model <- glm(donated ~ bad_address + interest_religion + interest_veterans, data = donors, family = "binomial")
+
+# verificando o modelo
+summary(donation_model)
+
+```
+
+### 3.2) Fazendo previsões binárias
+
+Muitos dos métodos de aprendizado de máquina em R utilizam a função predict() no objeto do modelo para prever o comportamento futuro. Como padrão o predict() gera previsões em log odds, a menos que o argumento *type = "response"* seja especificade, isso converte de log para  probabilidade.
+
+Como o modelo de regressão logística estima a probabilidade do resultado, cabe a você determinar esse limite (treshold). Por exemplo, se você definir que o treshhold é de 99% ou mais de probabilidade de doação, você perderia muitas pessoas com probabilidades estimadas mais baixas que ainda optam por doar. Este equilíbrio é particularmente importante ser considerado para resultados extremamente desequilibrados, no dataset donors as doações são relativamente raras.
+
+```{r, message=FALSE, warning=FALSE}
+
+# estimadno a probabilidade de doação
+donors$donation_prob <- predict(donation_model, type = "response")
+
+# média de doações
+mean(donors$donated)
+
+# prevendo se doa pela média da probabilidade de doação
+donors$donation_pred <- ifelse(donors$donation_prob > 0.0504, 1, 0)
+
+# calculando a acurácia do modelo
+mean(donors$donated == donors$donation_pred)
+
+```
+
+Com uma acurácia de quase 80%, o modelo parece estar fazendo um bom trabalho. Mas não é bom demais para ser verdade?
+
+### 3.3) Calculando a curva ROC e a AUC
+
+Demonstrei anteriormente que a acurácia pela média não é a melhor medida para verificarmos a performance de um modelo com dados desbalanceados. 
+
+Agora vou criar uma curva ROC e calcular a área sob a curva (AUC) para avaliar o modelo de regressão logística de doações que criei anteriormente.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o pacote pROC
+library(pROC)
+
+# criando a curva ROC
+ROC <- roc(donors$donated, donors$donation_prob)
+
+# visualizando a curva ROC
+plot(ROC, col = "blue")
+
+# calculando a área abaixo da curva ROC
+auc(ROC)
+
+```
+
+Com base nessa visualização, o modelo não é bom, é um modelo que não faz nada além de fazer previsões aleatórias.
+
+### 3.4) Codando com variáveis categóricas
+
+As veses o dataset pode conter valores numéricos representando uma feature categórica.
+
+No dataset donors a feature wealth_rating usa número para indicar o nível de renda do doador:
+
+* **0** = Unknown (desconhecido)
+* **1** = Low (baixo)
+* **2** = Medium (médio)
+* **3** = High (alto)
+
+Vou mostrar como preparar os dados nessa situação e examinar seu impacto no modelo de regressão logística.
+
+```{r, message=FALSE, warning=FALSE}
+
+# convertendo o nível de renda em fator
+donors$wealth_rating <- factor(donors$wealth_rating, 
+                               levels = c(0, 1, 2, 3), 
+                               labels = c("Unknown", "Low", "Medium", "High"))
+
+# usando o relevel() para mudar a referência da categoria
+donors$wealth_rating <- relevel(donors$wealth_rating, ref = "Medium")
+
+# vendo como essa feature transformada impacta no modelo de regressão logística
+summary(glm(donated ~ wealth_rating, data = donors, family = "binomial"))
+
+```
+
+Pense como seria a saída desse modelo se essa variável tivesse sido deixada como uma coluna numérica...
+
+### 3.5) Lidando com  valores faltantes (missing data)
+
+Alguns dos doadores em potencial têm dados de idade ausentes. Infelizmente o R exclui todos os casos com valores de NA ao criar um modelo de regressão.
+
+Uma solução alternativa é substituir ou imputar os valores ausentes com um valor estimado. Depois de fazer isso, você também pode criar um indicador de dados missing para modelar a possibilidade de casos com dados ausentes serem diferentes de algum modo daqueles sem dados.
+
+```{r, message=FALSE, warning=FALSE}
+
+# encontrando a média de idade
+summary(donors$age)
+
+# imputando dados de idade faltantes com a média
+donors$imputed_age <- ifelse(is.na(donors$age), 61.65, donors$age)
+
+# criando indicador para dados faltantes da feature de idade
+donors$missing_age <- ifelse(is.na(donors$age), 1, 0)
+
+```
+
+Esta é uma maneira de lidar com dados missing, mas tenha cuidado! Às vezes, dados ausentes precisam ser tratados usando métodos mais complicados.
+
+### 3.6) Construindo um modelo mais sofisticado
+
+Um dos melhores preditores de doações futuras é verificar o histórico recente de doações grandes e que foram mais frequentes. Em termos de marketing, isso é conhecido como R/F/M:
+
+* Recência (Recency)
+* Freqüência (Frequency)
+* Dinheiro (Money)
+
+Os doadores que não doaram recentemente e com frequência, podem ser especialmente propensos a doar de novo, em outras palavras, o impacto combinado de recência e frequência pode ser maior que a soma dos efeitos separados.
+
+Como esses preditores juntos têm um impacto maior na variável dependente, seu efeito conjunto deve ser modelado como uma interação.
+
+```{r, message=FALSE, warning=FALSE}
+
+# contruindo um modelo com recência, frequência e dinheiro (RFM)
+rfm_model <- glm(donated ~ recency * frequency + money, data = donors, family = "binomial")
+
+# verificando os parâmetros do modelo
+summary(rfm_model)
+
+# prevendo as probabilidades do modelo
+rfm_prob <- predict(rfm_model, data = donors, type = "response")
+
+# visualizando a curva ROC do modelo
+library(pROC)
+ROC <- roc(donors$donated, rfm_prob)
+plot(ROC, col = "red")
+auc(ROC)
+
+```
+
+Com base na curva ROC, podemos ver que padrões passados de doação são certamente preditivos de doações futuras!
+
+### 3.7) Construindo um modelo de regressão stepwise
+
+Na ausência de expertise em regressão logística, a regressão stepwise pode ajudar na busca dos preditores mais importantes do resultado de interesse.
+
+Aqui vou usar o forward stepwise para adicionar preditores ao modelo, um a um, até que nenhum benefício adicional seja visto com as outras features.
+
+```{r, message=FALSE, warning=FALSE}
+
+# modelo nulo sem features preditoras
+null_model <- glm(donated ~ 1, data = donors, family = "binomial")
+
+# modelo com as potencias features preditoras
+full_model <- glm(donated ~ ., data = donors, family = "binomial")
+
+# modelo usando forward stepwise
+step_model <- step(null_model, scope = list(lower = null_model, upper = full_model), direction = "forward")
+
+# prevendo probabilidades
+step_prob <- predict(step_model, type = "response")
+
+# visualizando a curva ROC do modelo stepwise
+library(pROC)
+ROC <- roc(donors$donated, step_prob)
+plot(ROC, col = "red")
+auc(ROC)
+
+```
+
+Apesar das ressalvas sobre a regressão usando a técnica de forward stepwise, o resultado do modelo é relativamente melhor.
+
+## 4) Árvore de classificação
+
+As árvores de classificação usam estruturas semelhantes dos fluxogramas para tomar decisões. Como os humanos podem entender melhor essas estruturas de árvores, as árvores de classificação são úteis quando a transparência é necessária, como na aprovação de empréstimos. Usarei o dataset Lending Club para simular esse cenário.
+
+**Mas antes vou apronfundar um pouco em como a árvore de decisão funciona.**
+
+A árvore de decisão divide o dataset em partições com valores similares da variável dependente. No caso dos dados de empréstimo os dados estão dividos entre aqueles que podem pagar o empréstimo (classe "repaid" da variável dependente) e os que não podem pagar de volta o empréstimo (classe "default" da variável dependente).
+
+Vamos supor que a árvore de decisão considera dois aspectos de cada pessoa que solicita um empréstimo: o score de crédito e o valor do empréstimo solicitado.
+
+A figura abaixo mostra essas características na relação dos dados quando o empréstimo é pago.
+
+![](decision_tree1.png)
+
+Primeiro, o algoritmo explode os dados em dois grupos homogêneos, em alto e baixo score de crédito.
+
+![](decision_tree2.png)
+
+Depois divide novamente os os dados em um grupo com alto score de crédito e solicitação de um alto valor de empréstimo, e um grupo com alto score de crédito e solicitação de um valor baixo de empréstimo.
+
+![](decision_tree3.png)
+
+Cada divisão dessa gera um nó que estrutura uma árvore de classificação como podemos ver na sequência.
+
+![](decision_tree4.png)
+
+Se o score de crédito é baixo, ele prevê que o solicitante não pagará, então o solicitante será classificado como "default".
+
+Se o score de crédito é alto e valor solicitado de empréstimo é alto, o modelo tambpem prevê que ele não pagará, então o solicitante será classificado como "default".
+
+Agora se o score do solicitante for alto, e o valor solicitado de empréstimo for baixo, então o solicitante pode pagar o empréstimo, e ele é  como "repaid".
+
+### 4.1) Contruindo uma árvore de decisão simples
+
+O dataset loans que usarei aqui é sobre empréstimos e contém 7.142 pessoas selecionadas aleatoriamente que receberam empréstimos do Lending Club, uma empresa de empréstimos P2P (<https://pt.wikipedia.org/wiki/Empr%C3%A9stimos_P2P>) dos Estados Unidos.
+
+Usarei uma árvore de decisão para tentar aprender padrões no resultado desses empréstimos (pagos ou inadimplentes) com base no valor do empréstimo solicitado e na pontuação de crédito no momento da solicitação.
+
+Vou comparar na sequência as previsões da árvore para um candidato com bom crédito versus um com crédito ruim.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o dataset loans
+loans <- read.csv(file = "loans.csv", sep = ";")
+
+# carregando o pacote rpart
+library(rpart)
+
+# construindo um modelo de empréstimo prevendo o resultado do empréstimo versus o valor do empréstimo e a pontuação de crédito
+loan_model <- rpart(outcome ~ loan_amount + credit_score, data = loans, method = "class", control = rpart.control(cp = 0))
+
+# fazendo previsão para laguém com crédito bom
+good_credit <- data.frame(loan_amount = c("LOW"), 
+                          emp_length = c("10+ years"),
+                          home_ownership = c("MORTGAGE"),
+                          income = c("HIGH"),
+                          loan_purpose = c("major_purchase"),
+                          debt_to_income = c("AVERAGE"),
+                          credit_score = c("HIGH"),
+                          recent_inquiry = c("NO"),
+                          deliquent = c("NEVER"),
+                          credit_accounts = c("MANY"),
+                          bad_public_record = c("NO"),
+                          credit_utilization = c("LOW"),
+                          past_bankrupt = c("NO"),
+                          outcome = c("repaid"))
+
+predict(loan_model, good_credit, type = "class")
+
+# fazendo previsão com alguém com crédito ruim
+bad_credit <- data.frame(loan_amount = c("LOW"), 
+                          emp_length = c("6 - 9 years"),
+                          home_ownership = c("RENT"),
+                          income = c("MEDIUM"),
+                          loan_purpose = c("car"),
+                          debt_to_income = c("LOW"),
+                          credit_score = c("LOW"),
+                          recent_inquiry = c("YES"),
+                          deliquent = c("NEVER"),
+                          credit_accounts = c("FEW"),
+                          bad_public_record = c("NO"),
+                          credit_utilization = c("HIGH"),
+                          past_bankrupt = c("NO"),
+                          outcome = c("repaid"))
+
+predict(loan_model, bad_credit, type = "class")
+
+```
+
+### 4.2) Visualizando árvores de classificação
+
+Nos EUA devido às regras do governo para evitar discriminação ilegal, os credores são obrigados a explicar por que um pedido de empréstimo foi rejeitado.
+
+A estrutura das árvores de classificação pode ser representada visualmente, o que ajuda a entender como a árvore toma suas decisões.
+
+```{r, message=FALSE, warning=FALSE}
+
+# verificando o modelo
+loan_model
+
+# carregando o pacote rpart.plot
+library(rpart.plot)
+
+# visualizando a árvore de classificação
+rpart.plot(loan_model)
+
+# visualizando a árvore de classificação com algumas configurações de visualização ajustadas
+rpart.plot(loan_model, type = 3, box.palette = c("red", "green"), fallen.leaves = TRUE)
+
+```
+
+O modelo que gerei vai aprovar empréstimo para alguém que solicita um valor baixo de empréstimo ou alguém que possui um score de crédito alto.
+
+### 4.3) Construindo árvores de classificação grandes
+
+Agora vou apresentar os fatores que podem nos ajudar a produzir modelos de classificação mais rosbustos. Nos vimos que a árvore de classificação divide os dados em partes homgêneas, e conforme a árvore de classificação cresce ela cria partes ainda menores e mais homogêneas a figura abaixo:
+
+![](decision_tree5.png)
+
+Olhando esses dados você pode ter imaginado que seria mais fácil traçar uma reta diagonal para separar os dados...
+
+![](decision_tree6.png)
+
+Infelizmente o modelo de árvore de classificação não pode fazer isso pois uma reta diagona dessa requer que ela considere duas features de uma vez.
+
+O que a árvore de decisão faz é criar o que é chamado de *divisões paralelas de eixo*, que é um ponto fraco nesse modelo quando é necessário modelar certos padrões nos dados, o modelo pode ficar muito complexo.
+
+Quando uma árvore de classificação cresce muito e se torna complexa, podemos ter overfitting no modelo, e isso é ruim pois o modelo se ajusta ao ruído dos dados e foca em subpadrões que não são generalizáveis!
+
+E mais do que muitos outros algoritmos de aprendizado de máquina, as árvores de classificação têm essa tendência de dar overfit sobre o conjunto de dados no qual ele é treinado.
+
+Quando um modelo de machine learning tem overfit nos dados de treino, é necessário tomar cuidado para não super estimar como ele pode performar com dados não vistos. 
+
+Por isso é importante simular o uso de dados não vistos separando nossos dados em dados de treino e dados de teste, uma maneira simples de construir dados de teste envolve pegar uma pequena porção de maneira aleatória do dataset original. Essa é uma maneira segura de estimar a performance do modelo com dados não vistos.
+
+![](decision_tree7.png)
+
+Se o modelo performar pior com os dados de teste do que com os dados de treino, fica evidente que o modelo está com overfit!
+
+Vamos ver como criar dados de teste para modelos de árvore de classificação ;*
+
+#### 4.3.1) Criando dados de treino e teste
+
+Antes de criar um modelo de empréstimo mais sofisticado, é importante manter uma parte dos dados do empréstimo para simular o nível de previsão dos resultados dos futuros candidatos a empréstimos.
+
+Conforme a imagem mostrada anteriormente, você pode usar 75% das observações para treinamento e 25% para testar o modelo.
+
+A função sample() pode ser usada para gerar uma amostra aleatória dos dados de treinamento. Basta fornecer o número total de observações e o número necessário para o treinamento.
+
+Aí é só usar o vetor resultante de IDs de linha para subdividir os empréstimos em conjuntos de dados de treinamento e teste.
+
+```{r, message=FALSE, warning=FALSE}
+
+# determinando o número de linhas para treino
+nrow(loans) * 0.75
+
+# criando uma amostra aletória das linhas
+sample_rows <- sample(7142, 5357)
+
+# criando os dados de treino
+loans_train <- loans[sample_rows, ]
+
+# criando os dados de teste
+loans_test <- loans[-sample_rows, ]
+
+```
+
+#### 4.3.2) Construiindo e avaliando uma árvore de classificação grande 
+
+Anteriormente, criei uma árvore de classificação simples que usava a pontuação de crédito do candidato e o valor do empréstimo solicitado para prever se o solicitante pagaria ele de volta ou não .
+
+O Lending Club tem informações adicionais sobre os solicitantes, como status de propriedade da residência em que mora, tempo de emprego, finalidade do empréstimo e falências passadas, que podem ser úteis para fazer previsões mais precisas.
+
+Usando todos os dados disponíveis dos candidatos, vou criar um modelo de empréstimo mais sofisticado usando os dados de treinamento criado anteriormente. Em seguida, usarei esse modelo para fazer previsões nos dados de teste para estimar o desempenho do modelo em futuros pedidos de empréstimo.
+
+```{r, message=FALSE, warning=FALSE}
+
+# crescendo a árvore usando todos os dados disponíveis
+loan_model <- rpart(outcome ~ ., data = loans_train, method = "class", control = rpart.control(cp = 0))
+
+# fazendo previsões com os dados de teste
+loans_test$pred <- predict(loan_model, loans_test, type = "class")
+
+# examinando a matrix de confusão
+table(loans_test$pred, loans_test$outcome)
+
+# verificando a acurácia dos dados de teste
+mean(loans_test$pred == loans_test$outcome)
+
+```
+
+## 4.4) Podando árvores de classificação
+
+Usulamente são aplicadas técnicas de "poda" em árvore de classificação, isso faz com que não fiquem muito grandes nem muito pequenas de modo que retornem o resultado necessário.
+
+A pré-poda é uma delas!
+
+A figura abaixo mostra uma árvore de classificação que foi podada no 3º nível da árvore: 
+
+![](decision_tree8.png)
+
+Outro método de pré-poda requer um número mínimo de observações em um nó para a divisão ocorrer:
+
+![](decision_tree9.png)
+
+Ambas das estratégias de pré-poda apresentadas previne as árvore de classificação de crescerem muito, porém isso pode fazer com que algum padrão importante não seja capturado pelo modelo.
+
+Porém é possível usar técnicas em que as árvore de classificação crescem muito e depois entramos com a poda, isso é chamdo de pós-poda.
+
+Na pós-poda, os nós e suas derivações com a menor impacto na acurácia do modelo são removidos.
+
+A figura abaixo mostra uma árvore de classificação que cresceu em 4 níveis, porém foi podada na derivação destacada pois essa parte não contribuia significativamente para a acurácia do modelo.
+
+![](decision_tree10.png)
+
+A relação entre a complexidade de uma árvore de decisão e asua acurácia pode ser visualizada no gráfico abaixo: 
+
+![](decision_tree11.png)
+
+Conforme a árvore de classificação se torna mais complexa, o modelo comete menos erros, mas embora o desempenho melhore bastante no início, ele melhora bem pouco para os aumentos de complexidade posteriores, isso fica bem evidente no gráfico acima quando a curva começa a ficar mais constante para a variável da taxa de erro.
+
+A linha pontilhada horizontal identifica o ponto onde a taxa de erro se torna estatisticamente similar para o modelo mais complexo possível. A árvore de classificação deve ser podada no nível de complexidade onde a taxa de erro está abaixo dessa linha pontilhada horizontal.  
+
+Agora vamos praticar!
+
+#### 4.4.1) Prevenindo o crescimento das árvores de classificação
+
+A árvore de classificação para todas as variáveis dos dados tornou-se extremamente grande e extremamente complexa, com centenas de divisões e nós não permitindo uma boa compreensão da mesma.
+
+Usando os métodos de pré-poda, podemos evitar que uma árvore cresça muito e seja muito complexa. Vamos ver como as opções de controle do rpart para profundidade máxima da árvore e contagem mínima de divisão impactam na árvore resultante.
+
+```{r, message=FALSE, warning=FALSE}
+
+# crescendo uma árvore com profundidade máxima de 6
+loan_model <- rpart(outcome ~ ., data = loans_train, method = "class", control = rpart.control(cp = 0, maxdepth = 6))
+
+# fazendo uma previsão de classe nos dados de teste
+loans_test$pred <- predict(loan_model, loans_test, type = "class")
+
+# verificando a acurácia
+mean(loans_test$pred == loans_test$outcome)
+
+```
+
+#### 4.4.2) Fazendo uma boa poda!
+
+Evitar que uma árvore cresça completamente pode levá-la a ignorar alguns aspectos dos dados ou a ignorar as tendências importantes que podem ser descobertas mais tarde.
+
+Ao usar a pós-poda, você pode intencionalmente cultivar uma árvore grande e complexa e em seguida podá-la para ficar menor e mais eficiente.
+
+Vou construir uma visualização do desempenho da árvore versus complexidade e usar essas informações para podar a árvore em um nível apropriado.
+
+```{r, message=FALSE, warning=FALSE}
+
+# crescendo uma árvore complexa
+loan_model <- rpart(outcome ~ ., data = loans_train, method = "class", control = rpart.control(cp = 0))
+
+# visualizando o gráfico de complexidade
+plotcp(loan_model)
+
+# podando a árvore
+loan_model_pruned <- prune(loan_model, cp = 0.0014)
+
+# computando a acurácia da árvore podada
+loans_test$pred <- predict(loan_model_pruned, loans_test, type = "class")
+mean(loans_test$pred == loans_test$outcome)
+
+```
+
+Opa! Como na pré-poda, a criação de uma árvore mais simples melhorou o desempenho da árvore de classificação nos dados de teste.
+
+### 4.5) Introdução ao modelo de random forest
+
+Parece contra-intuitivo pensar que um grupo de árvores de classificação construídas usando pequenos subconjuntos aleatórios do dataset pode ter uma acurácia melhor do que uma única árvore de classificação mais complexa, onde é utilizado todo o dataset para o modelo aprender.
+
+![](decision_tree12.png)
+
+Métodos de machine learning como o random forest são chamados de ensemble methods. Os modelos de ensemble methods são baseados no princípio de que pequenos modelos que não aprendem tão bem se tornam fortes quando trabalham em equipe com outros modelos.  
+
+![](decision_tree13.png)
+
+No random forest, cada árvore de classificação é chamada para fazer uma previsão, e a previsão geral do grupo é determinada pela maioria dos votos. Embora cada árvore refletir apenas uma parte restrita dos dados, o consenso geral é fortalecido por essas diversas perspectivas.
+
+Grupos de árvores de classificação podem ser combinados em um ensemble (conjunto) que gera uma única previsão permitindo que as árvores "votem" no resultado. Por que alguém pensaria que isso poderia resultar em previsões mais precisas do que uma única árvore de classificação?
+
+Resposta: a diversidade entre as árvores de classificação pode levar o modelo a descobrir padrões mais sutis e padrões mais importantes nos dados do que uma única árvore de classificação, isso tem haver com o princípio de trabalho em equipe dos ensemble methods, no qual o random forest é um.
+
+#### 4.5.1) Construindo um modelo de random forest
+
+O modelo de random forest pode assustar a princípio por conter centenas de árvores, pode dar idéia de que o crescimento de uma floresta de árvores de classificação seja muito difícil, mas não é!
+
+Usando o pacote randomForest vou construir um modelo de random forest e comaparar a acurácia com as árvore de classificação que construi anteriormente.
+
+```{r, message=FALSE, warning=FALSE}
+
+# carregando o pacote randomForest
+library(randomForest)
+
+# modelo de random forest
+loan_model <- randomForest(outcome ~ ., data = loans_train)
+
+# computando a acurácia do modelo
+loans_test$pred <- predict(loan_model, loans_test)
+mean(loans_test$pred == loans_test$outcome)
+
+```
+
+É importante salientar que devido à natureza aleatória do random forest, os resultados podem variar um pouco cada vez que o modelo for criado!
+
+## Fim ;*
+
