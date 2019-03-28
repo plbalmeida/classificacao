@@ -41,5 +41,5 @@ Conteúdo do tutorial:
 4.5) Introdução ao modelo de random forest;
 4.5.1) Construindo um modelo de random forest
 
-* Baseado no curso Supervised Learning in R: Classification da DataCamp.
+Baseado no curso Supervised Learning in R: Classification da DataCamp.
 
