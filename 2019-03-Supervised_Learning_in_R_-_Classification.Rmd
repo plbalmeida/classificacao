@@ -101,21 +101,15 @@ A matriz de confusão permite verificar os erros do modelo classificador, no cas
 
 ### 1.2) Testando outros valores de k
 
-Bom, algo que você deve estar se perguntando é: o que seria essa "k" do kNN? A letra k é uma variável que especifica o número de vizinhos que o modelo deve considerar quando for fazer a classificação dos dados, na função knn() do pacote class, se o k não for configurado ele por default é "1", isso significa que o modelo usará só um vizinho mais próximo para fazer a classificação. Vamos ver como o valor do k tem grande importância na performance do nosso modelo de classificação.
+Bom, algo que você deve estar se perguntando é: o que seria esse "k" do kNN? A letra k é uma variável que especifica o número de vizinhos que o modelo deve considerar quando for fazer a classificação dos dados (por isso o nome do modelo é kNN, "k-nearest neighbors"), na função knn() do pacote class, se o k não for configurado ele por default é "1", isso significa que o modelo usará só um vizinho mais próximo para fazer a classificação. Vamos ver como o valor do k tem grande importância na performance do nosso modelo de classificação.
 
 <center>
 ![](knn_4.png)
 </center>
 
-Vamos supor que o veículo captura o sinal do centro da imagem acima, e como vemos ele tem 5 vizinhos e o mais próximo é um sinal de limite de velocidade, no qual tem cores de fundo muito parecidas com a placa que precisa ser classificada, e nesse caso o modelo classificaria errado a placa. Se configurarmos o k em "3", das três  placas mais próximas duas são placas de pedestres atravessando, logo o modelo faria seu trabalho! 
+Vamos supor que o veículo captura o sinal do centro da imagem acima, e como vemos ele tem 5 vizinhos e o mais próximo é um sinal de limite de velocidade no qual tem cores de fundo muito parecidas com a placa que precisa ser classificada, e nesse caso o modelo classificaria errado a placa. Se configurarmos o k em "3", das três  placas mais próximas duas são placas de pedestres atravessando, logo o modelo faria seu trabalho! 
 
-Ok então isso é suficiente para definir o k do modelo? Não! Por exemplo, um k muito pequeno pode parecer que está fazendo um trabalho de classficação mais minucioso, porém um limite difuso entre as classes pode não estar representando um padrão verdadeiro e que provavelmente tem influência de algum outro fator que adiciona essa aleatoriedade aos dados, já configurar um k grande iria gerar uma classificação mais propensa a erros, pois ignora pontos mais ruidosos dos dados.
-
-<center>
-![](knn_5.png)
-</center>
-
-Então qual a melhor maneira de definir o k? Não existe uma regra universal para resolver esse problema, um valor ótimo nessa situação vai depender da complexidade do padrão que o modelo necessita aprender, algo que é sugerido é usar a raíz quadrada do número de observações dos dados de treinamento, por exemplo, se o carro capturou previamente 100 sinais de trânsito, então o k deve ser igual a 10, ou testar vários números de k e verificar a acurácia dos mesmo. 
+Então qual a melhor maneira de definir o k? Não existe uma regra, um valor ótimo nessa situação vai depender da complexidade do padrão que o modelo necessita aprender, algo que é sugerido é usar a raíz quadrada do número de observações dos dados de treinamento, por exemplo, se o carro capturou previamente 100 sinais de trânsito, então o k deve ser igual a 10, mas o melhor é testar vários números de k e verificar a acurácia do modelo. 
 
 Vou comparar os valores k de 1, 7 e 15 para examinar o impacto na precisão da classificação do sinal de trânsito.
 
@@ -137,11 +131,9 @@ mean(signs_actual == k_15)
 
 O modelo configurado com o k igual a 7 possui a melhor acurácia!
 
-### 1.3) Verificando como os vizinhos votam
+### 1.3) Verificando como os vizinhos são votados
 
-Quando vários vizinhos mais próximos realizam um voto, pode ser útil examinar se os votantes foram unânimes ou se são amplamente separados.
-
-Por exemplo, saber mais sobre os votantes na classificação pode permitir que um veículo autônomo seja mais cauteloso quando haver alguma chance de um sinal de parada estar próximo.
+Quando vários vizinhos mais próximos são votados é necessário examinar se os votados foram unânimes. Por exemplo, saber mais sobre os votados na classificação pode permitir que um veículo autônomo seja mais cauteloso quando haver alguma chance de um sinal de parada estar próximo.
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -161,15 +153,52 @@ head(sign_prob)
 
 ## 2) Naive Bayes
 
-Naive Bayes usa princípios do campo da estatística para fazer previsões. Apresentarei os fundamentos do método bayesiano aplicado às sugestões de destinos, semelhantes ao iPhone.
+O modelo de Naive Bayes é muito em tarefas de previsões, apresentarei os fundamentos do método bayesiano aplicado previsão de destinos, com base no histórico de localização de uma pessoa registrado em um celular.
+
+<center>
+![](naive_bayes_1.png)
+</center>
+
+O mapa acima mostra o número de vezes que o celular dessa pessoa gravou a posição dela em quatro lugares diferentes, logo a probabilidade dela estar no trabalho ou no mercado são as seguintes:
+
+* P(trabalho) = 23 / 40 = 57.5%
+* P(store) = 4 / 40 = 10.0%
+
+Essas probabilidades mostram como um evento é estimado pelos dados históricos, e essa conta é simples, é o número de vezes que o evento aconteceu dividido pelo número de vezes que isso poderia ter acontecido.
+
+Mas temos uma questão, mesmo que essa pessoa trabalhe muito não são todos os dias que ela está no trabalho certo? 
+
+Logo, se adicionarmos uma feature adicional com a hora do dia que esse registro é feito podemos melhorar essa previsão de localização, isso requer o entendimento de como combinar a informação de diversos eventos na estimativa da probabilidade.
+
+Quando eventos ocorrem simultaneamente, temos uma probabilidade conjunta:
+
+<center>
+![](naive_bayes_2.png)
+</center>
+
+A probabilidade conjunta pode ser representada pela interseção de um diagrama de Venn como na imagem acima, como podemos ver existe uma probabilidade de 20% dessa pessoa estar no trabalho de tarde. 
+
+A probabilidade conjunta de dois eventos (ou mais) é dada pela proporção dos dois eventos ocorrerem simultaneamente, por exemplo:
+
+* P(trabalho e noite) = 1%
+* P(trabalho and tarde) = 20%
+
+Quando um evento não influencia a probabilidade de outro, ele é um evento independente, mas quando um evento é preditivo de outro evento ele é chamado de dependente, essa é a base da previsão usando o método Bayesiano! A probabilidade condicional expressa exatamente como um evento depende do outro.
+
+A **probabilidade condicional** dos eventos A e B são denotados por P(A|B):
+
+$$ P(A | B) = \frac{P(A\ e\ B)}{P(B)} $$
+
+Como a fórmula mostra que a probabilidade do evento A dado que ocorreu o evento B, é igual a probabilidade conjunta de A e B dividido pela probabilidade de B.
+
+* P(trabalho | noite) = 1 / 25 = 4%
+* P(trabalho | tarde) = 20 / 25 = 80%
 
 ### 2.1) Computando probabilidades
 
 O dataset where9am contém 91 dias (treze semanas) com dos dados de localização de uma pessoa as 9h, e se o tipo de dia era  de um fim de semana ou dia da semana.
 
-Usando a fórmula de probabilidade condicional abaixo, calcularei a probabilidade de que essa pessoa desses dados esteja trabalhando no escritório, dado que é um dia da semana.
-
-$$ P(A|B) = \frac{P(A\ and\ B)}{P(B)} $$
+Usando a fórmula de probabilidade condicional calcularei a probabilidade de que essa pessoa esteja trabalhando no escritório, dado que é um dia da semana.
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -193,11 +222,15 @@ p_A_given_B
 
 ### 2.2) Modelo simples de localização com Naive Bayes 
 
-Mostrei que a probabilidade dessa pessoa estar no trabalho ou em casa às 9h é altamente dependente se é fim de semana ou um dia da semana.
+Antes de qualquer coisa, o modelo Naive Bayes é dado por:
 
-Para ver essa descoberta em ação, usarei os dados do where9am para criar um modelo Naive Bayes.
+$$ P(A | B) = \frac{P(B|A)\ P(A)}{P(B)} $$
+Onde:
+* P(A) e P(B) são as probabilidades a priori de A e B;
+* P(A|B) é a probabilidade a posteriori de A condicional de B;
+* P(B|A) é a probabilidade a posteriori de B condicional de A;
 
-Assim podemos usar esse modelo para prever o futuro: onde o modelo vai dizer que essa pessoa estará às 9h da quinta-feira e às 9h do sábado?
+Mostrei anteriormente que a probabilidade dessa pessoa estar no trabalho ou em casa às 9h é altamente dependente se é fim de semana ou um dia da semana. Para ver essa descoberta em ação, usarei os dados do where9am para criar um modelo Naive Bayes. Assim podemos usar esse modelo para prever o futuro: onde o modelo vai dizer que essa pessoa estará às 9h da quinta-feira e às 9h do sábado?
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -211,13 +244,13 @@ locmodel <- naive_bayes(location ~ daytype, data = where9am)
 thursday9am <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")))
 predict(locmodel, thursday9am)
 
-# previsão da localização as 9h na quinta-feira
+# previsão da localização as 9h no sábado
 saturday9am <- data.frame(daytype = factor(x = c("weekend"), levels = c("weekday", "weekend")))
 predict(locmodel, saturday9am)
 
 ```
 
-É mais provável essa pessoa estar no escritório às 9h numa quinta-feira, porém em casa no mesmo horário em um sábado!
+É mais provável essa pessoa estaja no escritório às 9h numa quinta-feira, porém no sábado é mais provável que ela esteja em casa no mesmo horário!
 
 ### 2.3) Examinando probabilidades
 
@@ -225,7 +258,7 @@ O pacote naivebayes oferece várias maneiras de espiar o um modelo Naive Bayes p
 
 Digitar o nome do objeto do modelo fornece as probabilidades a priori e condicional de cada um dos preditores do modelo. Podemos usar essas probabilidades para calcular as probabilidades posteriores (previstas) na mão, porém o R calcula as probabilidades posteriores se o argumento *type = "prob"* estiver configurado na função predict().
 
-Usando esse método, examinarei como a probabilidade de localização prevista do modelo varia de acordo com o dia-a-dia.
+Usando esse método examinarei como a probabilidade de localização prevista do modelo varia de acordo com o dia.
 
 ```{r, message=FALSE, warning=FALSE}
 
@@ -262,7 +295,7 @@ weekday_afternoon <- data.frame(daytype = factor(x = c("weekday"), levels = c("w
                                 location = factor(x = c("office"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
 predict(locmodel, weekday_afternoon)
 
-# prevendo a localização em um dia da semana no come?o da noite
+# prevendo a localização em um dia da semana no começo da noite
 weekday_evening <- data.frame(daytype = factor(x = c("weekday"), levels = c("weekday", "weekend")), 
                                 hourtype = factor(x = c("evening"), levels = c("afternoon", "evening", "morning", "night")), 
                                 location = factor(x = c("home"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
@@ -270,17 +303,15 @@ predict(locmodel, weekday_evening)
 
 ```
 
-Como pode ver o modelo Naive Bayes prevê que essa pessoa estará no escritório de tarde em um dia da semana e em casa de noite.
+Como pode ver o modelo Naive Bayes prevê que essa pessoa estará no de tarde no escritório em um dia da semana e em casa de noite.
 
-### 2.5) Preparando-se para circunstâncias imprevistas
+### 2.5) Eventos não vistos
 
-Durante o rastreamento dessa pessoa nessas 13 semanas, ela não entrou no escritório durante o fim de semana. Consequentemente, a probabilidade conjunta de P(escritório U fim de semana) = 0.
-
-Vou explorar agora como isso afeta a probabilidade  dessa pessoa ir trabalhar no fim de semana no futuro. Além disso vou usar a correção de Laplace que garante uma pequena probabilidade adicionada a cada resultado que faz com que todos sejam possíveis, mesmo que nunca tenham sido observados anteriormente.
+Durante o rastreamento dessa pessoa nessas 13 semanas, ela não entrou no escritório durante o fim de semana. Consequentemente, a probabilidade conjunta de P(escritório U fim de semana) = 0. Vou explorar como isso afeta a probabilidade dessa pessoa ir trabalhar no fim de semana no futuro. Além disso vou usar a correção de Laplace que garante uma pequena probabilidade adicionada a cada resultado que faz com que todos sejam possíveis, mesmo que nunca tenham sido observados anteriormente.
 
 ```{r, message=FALSE, warning=FALSE}
 
-# previs?o de localização em um final de semana no fim de tarde
+# previsão de localização em um final de semana no fim de tarde
 weekend_afternoon <- data.frame(daytype = factor(x = c("weekend"), levels = c("weekday", "weekend")), 
                                 hourtype = factor(x = c("afternoon"), levels = c("afternoon", "evening", "morning", "night")), 
                                 location = factor(x = c("home"), levels = c("appointment", "campus", "home", "office", "restaurant", "store", "theater")))
@@ -294,15 +325,37 @@ predict(locmodel2, weekend_afternoon, type = "prob")
 
 ```
 
-Que interessante não! Adicionar a correção de Laplace permite termos uma pequena probabilidade dessa pessoa estar no escritório no fim de semana no futuro mesmo que isso nunca tenha sido observado anteriormente.
+Legal! Adicionar a correção de Laplace permite termos uma pequena probabilidade dessa pessoa estar no escritório no fim de semana no futuro, mesmo que isso nunca tenha sido observado anteriormente.
 
 ## 3) Regressão Logística
 
-A regressão logística envolve ajustar uma curva aos dados numéricos para fazer previsões sobre eventos binários. Indiscutivelmente esse é um dos métodos de aprendizado de máquina mais amplamente utilizados, darei uma visão geral da técnica enquanto ilustro como aplicá-lo aos dados de captação de recursos.
+A regressão logística envolve ajustar uma curva aos dados numéricos para fazer previsões sobre eventos binários. Indiscutivelmente esse é um dos métodos de aprendizado de máquina mais amplamente utilizados, darei uma visão geral dessa técnica apicando ela aos dados de captação de recursos de entidade social.
+
+Mas antes vamos entender o que á regressão logísitca. Dado que temos dados com a variável dependente binária, a visualização desse dataset seria algo como a figura a seguir.
+
+<center>
+![](logistic_regression_1.png)
+</center>
+
+Se tentarmos ajustar o modelo com um regressão linear não teremos um ajuste legal sobre os dados, veja:
+
+<center>
+![](logistic_regression_2.png)
+</center>
+
+Assim o modelo vai prever valores menores que 0 e maiores que 1, e isso não é possível dado que nossos dados são binários ok?
+
+Agora com o modelo de regressão logistica, a curva se ajusta entre 0 e 1.
+
+<center>
+![](logistic_regression_3.png)
+</center>
+
+$$ y = \frac{e^{b_0\ + b_1}}{1\ +\ e^{b_0\ + b_1}} $$
 
 ### 3.1) Contruindo um modelo de regressão logísitca simples
 
-O conjunto de dados donors contém 93.462 registros de pessoas que receberam por correio uma solicitação de angariação de fundos para veteranos militares deficientes físicos. A coluna donated é 1 se a pessoa fez uma doação em resposta à correspondência, e 0 no caso contrário. Este resultado binário será a variável dependente para o modelo de regressão logística.
+O conjunto de dados donors contém 93.462 registros de pessoas que receberam por correio um pedido de doação para veteranos militares deficientes físicos. A coluna donated é 1 se a pessoa fez uma doação em resposta à correspondência, e 0 no caso contrário. Este resultado binário será a variável dependente para o modelo de regressão logística.
 
 As colunas restantes são características dos possíveis doadores que podem influenciar no seu comportamento de doação. Estas são as variáveis independentes do modelo.
 
@@ -335,6 +388,10 @@ Muitos dos métodos de aprendizado de máquina em R utilizam a função predict(
 
 Como o modelo de regressão logística estima a probabilidade do resultado, cabe a você determinar esse limite (treshold). Por exemplo, se você definir que o treshhold é de 99% ou mais de probabilidade de doação, você perderia muitas pessoas com probabilidades estimadas mais baixas que ainda optam por doar. Este equilíbrio é particularmente importante ser considerado para resultados extremamente desequilibrados, no dataset donors as doações são relativamente raras.
 
+<center>
+![](logistic_regression_4.png)
+</center>
+
 ```{r, message=FALSE, warning=FALSE}
 
 # estimadno a probabilidade de doação
@@ -351,11 +408,47 @@ mean(donors$donated == donors$donation_pred)
 
 ```
 
-Com uma acurácia de quase 80%, o modelo parece estar fazendo um bom trabalho. Mas não é bom demais para ser verdade?
+Com uma acurácia de quase 80%, o modelo parece estar fazendo um bom trabalho. Mas não é bom demais pra ser verdade?
 
 ### 3.3) Calculando a curva ROC e a AUC
 
-Demonstrei anteriormente que a acurácia pela média não é a melhor medida para verificarmos a performance de um modelo com dados desbalanceados. 
+Demonstrei anteriormente que a acurácia pela média não é a melhor medida para verificarmos a performance de um modelo com dados desbalanceados na variável dependente. Quando uma das classes é mais rara, prever o oposto pode gerar um resultado com uma acurácia muito alta, e esse é o caso do dataset que estamos usando aqui, onde somente 5% das pessoas eram doadoras. 
+
+A visualização chamada de curva ROC proporciona a melhor maneira de entender como modelo faz a classificação entre 0 e 1. 
+
+Para entender como isso funciona, imagine que nós estamos trabalhando em um projeto onde os dados "X" são positivos e os dados "O" são negativos. O modelo de classificação vai tentar distinguir entre esses dois dois grupos.
+
+Se o modelo for ruim ele vai classificar os dados como a figura a seguir (imagine que a marcação do meio determina o treshold entre as classes, a esquerda seriam os positivos, e a direita os negativos):
+
+<center>
+![](logistic_regression_5.png)
+</center>
+
+A curva ROC desse modelo seria:
+
+<center>
+![](logistic_regression_6.png)
+</center>
+
+A curva ROC mostra a relação entre a porcentagem de exemplos positivos "X" com a porcentagem de negativos "O" através de vários tresholds indo de 0% a 100%. No caso acima a curva diagonal mostra que a proporção de previsões positivas é propocional a de negativos.
+
+Agora vamos imaginar que nosso modelo previu o seguinte sobre os dados:
+
+<center>
+![](logistic_regression_7.png)
+</center>
+
+A curva ROC é a seguinte.
+
+<center>
+![](logistic_regression_8.png)
+</center>
+
+Percebemos que quando o modelo não está legal é formada uma linha diagonal na curva ROC, quando não o modelo está ok, e quanto mais distante da linha diagonal melhor está o modelo. Existe uma medida chamada AUC, que em português é área abaixo da curva, que é útil para verificarmos a performance do nosso modelo classificador (isso método serve para qualquer método classificador, não para o de regressão logística), então quanto mais próximo de 1, melhor o modelo está classificando os dados ;) 
+
+<center>
+![](logistic_regression_9.png)
+</center>
 
 Agora vou criar uma curva ROC e calcular a área sob a curva (AUC) para avaliar o modelo de regressão logística de doações que criei anteriormente.
 
