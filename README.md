@@ -3,8 +3,7 @@
 Machine learning (ou aprendizagem de máquina) é a utilização de métodos estatísticos computacionais para aprender sobre dados e conseguir insights para tomada de decisão através da realização de previsões ou inferência sobre as variáveis independentes. Esse RMarkdown foca em um tipo de machine learning chamado aprendizagem supervisionada de classificação. Prever se uma pessoa pode ter algum tipo de doença, prever o tempo e prever bons pagadores são alguns exemplos de problemas de classificação.
 
 * O código está no formato do RMarkdown.
-
-* É necessário instalar os seguintes pacotes do R para rodar o código: class, naivebayes, pROC, rpart, rpart.plot e randomForest     
+* É necessário instalar o(s) seguinte(s) pacote(s) do R para rodar o código: class, naivebayes, pROC, rpart, rpart.plot e randomForest   
 
 Conteúdo do tutorial:
 
